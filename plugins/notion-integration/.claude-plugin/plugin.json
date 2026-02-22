@@ -1,0 +1,9 @@
+{
+  "name": "notion-integration",
+  "version": "1.0.0",
+  "description": "Connect Claude Code to your Notion workspace. Search pages, create content, manage databases, and sync documentation via the official Notion MCP server.",
+  "author": {
+    "name": "Anthropic",
+    "email": "support@anthropic.com"
+  }
+}
