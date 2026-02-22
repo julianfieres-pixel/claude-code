@@ -136,6 +136,17 @@
       "category": "development"
     },
     {
+      "name": "notion-integration",
+      "description": "Integrate Claude Code with Notion to create pages, search your workspace, and sync project documentation directly from your terminal",
+      "version": "1.0.0",
+      "author": {
+        "name": "Anthropic",
+        "email": "support@anthropic.com"
+      },
+      "source": "./plugins/notion-integration",
+      "category": "productivity"
+    },
+    {
       "name": "security-guidance",
       "description": "Security reminder hook that warns about potential security issues when editing files, including command injection, XSS, and unsafe code patterns",
       "version": "1.0.0",

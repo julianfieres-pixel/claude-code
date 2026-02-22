@@ -1,0 +1,9 @@
+{
+  "name": "notion-integration",
+  "version": "1.0.0",
+  "description": "Integrate Claude Code with Notion to create pages, search your workspace, and sync project documentation directly from your terminal",
+  "author": {
+    "name": "Anthropic",
+    "email": "support@anthropic.com"
+  }
+}
