@@ -44,7 +44,7 @@ class Geocoder:
         if wait > 0:
             time.sleep(wait)
         params = urllib.parse.urlencode({
-            "lat": f"{lat:.5f}", "lon": f"{lon:.5f}", "format": "jsonv2",
+            "lat": f"{lat:.3f}", "lon": f"{lon:.3f}", "format": "jsonv2",
             "zoom": 17, "addressdetails": 1, "accept-language": self.language,
         })
         req = urllib.request.Request(f"{URL}?{params}", headers={"User-Agent": USER_AGENT})

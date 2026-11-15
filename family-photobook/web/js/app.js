@@ -12,7 +12,7 @@ const PERSONS = ['a', 'b', 'c'];
 const PCOLOR = { a: 'var(--p-a)', b: 'var(--p-b)', c: 'var(--p-c)' };
 const DEFAULTS = {
   title: 'Unser Jahr', names: { a: 'Papa', b: 'Mama', c: 'Sohn' }, focus: 'c', perMonth: 25, prints: 3,
-  refs: [], overrides: {}, placeNoticeHidden: false,
+  refs: [], overrides: {}, placeNoticeHidden: false, lookupPlaces: true,
 };
 const S = {
   photos: new Map(), files: new Map(), assets: new Map(), settings: structuredClone(DEFAULTS),
@@ -611,6 +611,8 @@ function openSettings() {
     el('div', { class: 'row' }, el('span', {}, 'Fotos pro Monat'), seg([[20, '20'], [25, '25'], [30, '30']], st.perMonth, v => { st.perMonth = v; changed(); })),
     el('div', { class: 'row' }, el('span', {}, 'Druckempfehlungen'), seg([[2, '2'], [3, '3']], st.prints, v => { st.prints = v; changed(); })),
     el('div', { class: 'row' }, el('span', {}, 'Bevorzugen'), seg([['', 'Alle gleich'], ...PERSONS.map(k => [k, name(k)])], st.focus, v => { st.focus = v; changed(); })),
+    el('div', { class: 'row' }, el('span', {}, 'Ortsnamen online suchen', el('br'), el('small', { class: 'muted' }, 'Sendet nur gerundete Koordinaten (ca. 100 m) an OpenStreetMap, nie Fotos.')),
+      seg([[true, 'An'], [false, 'Aus']], st.lookupPlaces, v => { st.lookupPlaces = v; saveSettings(); if (v) background(); })),
     el('div', { class: 'row' }, el('span', {}, 'Ausgeblendete Fotos'),
       el('button', { class: 'btn ghost small', onclick: () => { for (const o of Object.values(st.overrides)) delete o.excluded; changed(); toast('Alle Fotos wieder im Rennen.'); } }, 'Zurückholen')),
     el('div', { class: 'row', style: 'border:0' }, el('span', {}, el('strong', {}, 'Alles löschen'), el('br'), el('small', { class: 'muted' }, 'Entfernt alle Daten der App von diesem Gerät. Eure Fotos in der Mediathek bleiben unberührt.')),
@@ -671,7 +673,7 @@ async function background() {
     }
     // places
     const bookPhotos = S.book.flatMap(m => m.top);
-    if (bookPhotos.some(p => !p.place && p.placeSource !== 'manual')) {
+    if (S.settings.lookupPlaces && bookPhotos.some(p => !p.place && p.placeSource !== 'manual')) {
       pill.lastChild.textContent = 'Orte werden gesucht …';
       if (!pill.isConnected) document.body.append(pill);
       const { changed } = await assignPlaces(bookPhotos, live(), (i, n) => { pill.lastChild.textContent = `Orte ${i}/${n}`; });

@@ -49,7 +49,11 @@ async function decode(file) {
       document.head.append(s);
     });
     const heic2any = await heic2anyLoaded;
-    const jpeg = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+    // a converter that never answers must not block the whole import
+    const jpeg = await Promise.race([
+      heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 }),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('HEIC-Umwandlung: Zeitüberschreitung')), 60000)),
+    ]);
     return createImageBitmap(Array.isArray(jpeg) ? jpeg[0] : jpeg);
   }
 }

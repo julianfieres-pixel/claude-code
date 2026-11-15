@@ -19,7 +19,7 @@ async function lookup(lat, lon) {
   if (wait > 0) await new Promise(r => setTimeout(r, wait));
   last = Date.now();
   try {
-    const qs = new URLSearchParams({ lat: lat.toFixed(5), lon: lon.toFixed(5), format: 'jsonv2', zoom: 17, addressdetails: 1, 'accept-language': 'de' });
+    const qs = new URLSearchParams({ lat: lat.toFixed(3), lon: lon.toFixed(3), format: 'jsonv2', zoom: 17, addressdetails: 1, 'accept-language': 'de' });
     const res = await fetch(`${URL_}?${qs}`, { referrerPolicy: 'strict-origin-when-cross-origin' });
     if (!res.ok) throw new Error(res.status);
     const data = await res.json();

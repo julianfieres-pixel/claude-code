@@ -63,6 +63,12 @@ Ablauf und Grenzen laut [Picker-API-Doku](https://developers.google.com/photos/p
 - Bewertung: Familienmitglieder 32 %, Schärfe der Gesichter 23 %, Gesichtsgröße 13 %, Belichtung 12 %, Lächeln 12 %, Auflösung 8 % (`web/js/select.js`).
 - Offline-fähig nach dem ersten Aufruf (Service Worker).
 
+### Sicherheit
+- `web/vercel.json` setzt Sicherheits-Header: eine Content-Security-Policy, die Verbindungen nur zur eigenen Adresse, zu OpenStreetMap und zu Google Fotos erlaubt, dazu Schutz gegen Einbetten in fremde Seiten. `'unsafe-eval'` ist nur wegen des HEIC-Umwandlers (heic2any) erlaubt.
+- Dateinamen, Titel, Namen und Ortsangaben werden nie als HTML eingefügt.
+- An OpenStreetMap gehen nur auf drei Nachkommastellen (ca. 100 m) gerundete Koordinaten; abschaltbar in den Einstellungen.
+- Die Kommandozeilen-Version prüft die geladenen Gesichtsmodelle per SHA-256.
+
 ---
 
 ## Kommandozeilen-Version (Python)

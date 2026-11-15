@@ -6,6 +6,7 @@ Models: OpenCV Zoo (Apache-2.0)
 """
 from __future__ import annotations
 
+import hashlib
 import urllib.request
 from pathlib import Path
 
@@ -20,6 +21,10 @@ MODEL_URLS = {
     "sface.onnx": "https://media.githubusercontent.com/media/opencv/opencv_zoo/main/models/"
     "face_recognition_sface/face_recognition_sface_2021dec.onnx",
 }
+MODEL_SHA256 = {
+    "yunet.onnx": "8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4",
+    "sface.onnx": "0ba9fbfa01b5270c96627c4ef784da859931e02f04419c829e83484087c34e79",
+}
 # SFace cosine-similarity threshold recommended by OpenCV is 0.363. Children's faces change
 # quickly, so we stay close to it; tune with --face-threshold if needed.
 DEFAULT_THRESHOLD = 0.363
@@ -32,7 +37,13 @@ def ensure_models(model_dir: Path) -> tuple[Path, Path]:
         target = model_dir / name
         if not target.exists() or target.stat().st_size < 100_000:
             print(f"  Lade Modell {name} ...")
-            urllib.request.urlretrieve(url, target)
+            tmp = target.with_suffix(".part")
+            urllib.request.urlretrieve(url, tmp)
+            digest = hashlib.sha256(tmp.read_bytes()).hexdigest()
+            if digest != MODEL_SHA256[name]:
+                tmp.unlink()
+                raise RuntimeError(f"Modell {name}: Prüfsumme stimmt nicht ({digest}). Download abgebrochen.")
+            tmp.replace(target)
     return model_dir / "yunet.onnx", model_dir / "sface.onnx"
 
 
