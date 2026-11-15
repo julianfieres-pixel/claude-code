@@ -28,6 +28,7 @@ export function loadModels() {
       return faceapi.tf.getBackend();
     })();
   }
+  ready.catch(() => { ready = null; }); // allow a retry after a failed load
   return ready;
 }
 

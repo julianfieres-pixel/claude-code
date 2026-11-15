@@ -80,8 +80,11 @@ function sheet(...content) {
 function pickFiles({ directory = false } = {}) {
   const input = el('input', { type: 'file', multiple: true, accept: directory ? null : 'image/*,.heic,.heif,.json', class: 'sr' });
   if (directory) input.webkitdirectory = true;
-  input.addEventListener('change', () => { if (input.files.length) addFiles([...input.files]); input.remove(); });
+  const flag = v => { try { v ? sessionStorage.setItem('picking', '1') : sessionStorage.removeItem('picking'); } catch { /* private mode */ } };
+  input.addEventListener('change', () => { flag(false); if (input.files.length) addFiles([...input.files]); input.remove(); });
+  input.addEventListener('cancel', () => { flag(false); input.remove(); });
   document.body.append(input);
+  flag(true);
   input.click();
 }
 
@@ -104,6 +107,10 @@ async function boot() {
   const [settings, photos] = await Promise.all([db.get('state', 'settings'), db.getAll('photos')]);
   if (settings) S.settings = { ...structuredClone(DEFAULTS), ...settings };
   for (const [id, rec] of photos) { rec.id = id; S.photos.set(id, rec); }
+  let interrupted = false;
+  try { interrupted = sessionStorage.getItem('picking') === '1'; sessionStorage.removeItem('picking'); } catch { /* ignore */ }
+  if (interrupted) setTimeout(() => sheet(el('h3', {}, 'Die Auswahl wurde unterbrochen'),
+    el('p', {}, 'Das Handy hat die Seite während der Fotoauswahl neu geladen – meist, weil zu viele Fotos auf einmal gewählt wurden. Bitte wählt höchstens 100 Fotos auf einmal und wiederholt das, bis alle drin sind. Schon angeschaute Fotos bleiben gespeichert.')), 400);
   if (!S.photos.size) return go('welcome');
   recompute();
   go(!hasPeople() && clusters().length ? 'people' : 'book');
@@ -136,7 +143,23 @@ async function loadAssets(ids) {
 
 // ---------------------------------------------------------------- import
 let cancelImport = false;
+const withTimeout = (promise, ms, what) => Promise.race([promise,
+  new Promise((_, rej) => setTimeout(() => rej(new Error(`${what}: Zeitüberschreitung`)), ms))]);
+
+function showFailure(err) {
+  console.error(err);
+  app.replaceChildren(el('div', { class: 'progress-screen' }, el('div', { class: 'progress-card' },
+    el('h2', {}, 'Das hat leider nicht geklappt'),
+    el('p', { class: 'muted' }, 'Bereits angeschaute Fotos sind gespeichert. Bitte versucht es noch einmal, am besten mit höchstens 100 Fotos auf einmal.'),
+    el('p', { class: 'hint', style: 'user-select:all' }, `Technischer Hinweis: ${err?.message || err}`),
+    el('button', { class: 'btn', onclick: () => { recompute(); go(S.photos.size ? (hasPeople() ? 'book' : 'people') : 'welcome'); } }, 'Weiter'))));
+}
+
 async function addFiles(files, hints = new Map()) {
+  try { await importFiles(files, hints); } catch (err) { showFailure(err); }
+}
+
+async function importFiles(files, hints) {
   const sidecars = await readTakeoutSidecars(files.filter(f => /\.json$/i.test(f.name)));
   const imgs = files.filter(f => isImage(f) && !/\.json$/i.test(f.name));
   if (!imgs.length) return toast('Keine Fotos gefunden.');
@@ -148,20 +171,21 @@ async function addFiles(files, hints = new Map()) {
     if (!S.photos.has(id)) todo.push(f);
   }
   const ui = renderProgress(todo.length, imgs.length - todo.length);
-  let lock = null;
-  try { lock = await navigator.wakeLock?.request('screen'); } catch { /* not supported */ }
+  let lock = null; // keep the screen on, but never wait for it
+  try { navigator.wakeLock?.request('screen').then(l => { lock = l; }).catch(() => {}); } catch { /* not supported */ }
   cancelImport = false;
   let errors = 0;
   try {
     ui.stage(0);
-    await loadModels();
+    const backend = await withTimeout(loadModels(), 120000, 'Gesichtserkennung laden');
+    ui.note(`${fmtNum(imgs.length)} Fotos übernommen · Technik: ${backend}`);
     ui.stage(1);
     const t0 = performance.now();
     for (const [i, f] of todo.entries()) {
       if (cancelImport) break;
       const id = fileId(f);
       try {
-        const rec = await analyzeFile(f, hints.get(f) || sidecars.get(f.name) || {});
+        const rec = await withTimeout(analyzeFile(f, hints.get(f) || sidecars.get(f.name) || {}), 90000, f.name);
         rec.id = id;
         S.photos.set(id, rec);
         await savePhoto(rec);
@@ -169,6 +193,8 @@ async function addFiles(files, hints = new Map()) {
       } catch (err) {
         errors++;
         console.warn('Foto übersprungen', f.name, err);
+        ui.note(`Übersprungen: ${f.name} (${err?.message || err})`);
+        if (errors >= 5 && errors === i + 1) throw new Error(`Die ersten Fotos konnten nicht gelesen werden – ${err?.message || err}`);
       }
       ui.count(i + 1, (performance.now() - t0) / (i + 1));
       if (i % 4 === 0) await yieldUI();
@@ -239,6 +265,7 @@ function openPhoneSheet() {
       el('li', {}, 'Tippe auf „Fotos auswählen“. Es öffnet sich eure Mediathek.'),
       el('li', {}, isIOS() ? 'Mehrere Fotos markierst du schnell, indem du mit dem Finger über die Fotos wischst. Unter „Sammlungen“/„Alben“ findest du auch geteilte Alben.' : 'Halte ein Foto gedrückt und markiere dann weitere – oder wähle ein ganzes Album.'),
       isIOS() ? el('li', {}, 'Für Orte unter den Fotos: Wenn oben „Optionen“ erscheint, dort die Ortsdaten einschließen. Fehlen Orte, übernimmt die App sie von anderen Fotos desselben Tages oder ihr tippt sie ein.') : null,
+      el('li', {}, el('strong', {}, 'Am besten 100 Fotos auf einmal.'), ' Nach dem Bestätigen bereitet das Handy die Fotos erst vor – das dauert etwa eine Minute pro 100 Fotos, und so lange sieht es aus, als passiere nichts. Bei sehr vielen Fotos auf einmal bricht das Handy manchmal ab.'),
       el('li', {}, 'Ihr könnt beliebig oft weitere Fotos hinzufügen, z. B. später die vom anderen Handy.')),
     el('div', { class: 'choices' },
       el('button', { class: 'btn block', onclick: () => { close(); pickFiles(); } }, icon('phone'), 'Fotos auswählen')));
@@ -284,6 +311,7 @@ function renderProgress(n, known) {
   const of = el('div', { class: 'muted' }, `von ${fmtNum(n)} neuen Fotos${known ? ` · ${fmtNum(known)} schon bekannt` : ''}`);
   const bar = el('i');
   const eta = el('div', { class: 'hint' }, '');
+  const note = el('div', { class: 'hint', style: 'font-size:12px' }, '');
   const labels = ['Gesichtserkennung vorbereiten', 'Fotos anschauen', 'Duplikate & Monate sortieren', 'Gesichter gruppieren'];
   const items = labels.map(l => el('li', {}, el('span', { class: 'dot' }), l));
   const strip = el('div', { class: 'strip' });
@@ -293,9 +321,10 @@ function renderProgress(n, known) {
     count, of, el('div', { class: 'bar' }, bar), eta,
     el('ul', { class: 'stages' }, items), strip,
     el('p', { class: 'hint' }, isTouch() ? 'Bitte die App geöffnet lassen und das Handy nicht sperren. Bereits angeschaute Fotos bleiben gespeichert.' : 'Bereits angeschaute Fotos bleiben gespeichert – ihr könnt jederzeit weitermachen.'),
-    el('button', { class: 'btn ghost small', onclick: () => { cancelImport = true; } }, 'Anhalten'))));
+    el('button', { class: 'btn ghost small', onclick: () => { cancelImport = true; } }, 'Anhalten'), note)));
   scrollTo(0, 0);
   return {
+    note(t) { note.textContent = t; },
     stage(i) { items.forEach((li, j) => { li.className = j < i ? 'done' : j === i ? 'on' : ''; li.querySelector('.dot').replaceChildren(j < i ? icon('check') : ''); }); },
     count(i, msPer) {
       count.textContent = fmtNum(i);
@@ -687,6 +716,8 @@ async function background() {
 }
 
 // ---------------------------------------------------------------- start
+addEventListener('unhandledrejection', e => toast(`Fehler: ${e.reason?.message || e.reason}`, null, null, 8000));
+addEventListener('error', e => { if (e.message) toast(`Fehler: ${e.message}`, null, null, 8000); });
 addEventListener('beforeprint', async () => { for (const img of document.querySelectorAll('img[loading=lazy]')) img.loading = 'eager'; });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 boot().catch(err => {
