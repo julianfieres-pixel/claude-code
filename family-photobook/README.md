@@ -64,6 +64,7 @@ Ablauf und Grenzen laut [Picker-API-Doku](https://developers.google.com/photos/p
 - Offline-fähig nach dem ersten Aufruf (Service Worker).
 
 ### Sicherheit
+- **Passwortsperre:** `web/middleware.js` prüft auf Vercels Servern vor jeder Auslieferung ein Familien-Passwort (Vercel-Projekteinstellung `APP_PASSWORD`, nie im Code). Ändern: Vercel → Projekt → Settings → Environment Variables → `APP_PASSWORD` bearbeiten → neu veröffentlichen. Danach müssen sich alle Geräte neu anmelden. Abmelden: `/__logout` aufrufen.
 - `web/vercel.json` setzt Sicherheits-Header: eine Content-Security-Policy, die Verbindungen nur zur eigenen Adresse, zu OpenStreetMap und zu Google Fotos erlaubt, dazu Schutz gegen Einbetten in fremde Seiten. `'unsafe-eval'` ist nur wegen des HEIC-Umwandlers (heic2any) erlaubt.
 - Dateinamen, Titel, Namen und Ortsangaben werden nie als HTML eingefügt.
 - An OpenStreetMap gehen nur auf drei Nachkommastellen (ca. 100 m) gerundete Koordinaten; abschaltbar in den Einstellungen.
