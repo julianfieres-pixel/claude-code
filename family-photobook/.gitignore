@@ -1,0 +1,5 @@
+fotobuch/
+__pycache__/
+*.pyc
+.venv/
+people/
