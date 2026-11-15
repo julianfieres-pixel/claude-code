@@ -11,8 +11,14 @@ let ready;
 export function loadModels() {
   if (!ready) {
     ready = (async () => {
-      try { await faceapi.tf.setBackend('webgl'); } catch { await faceapi.tf.setBackend('cpu'); }
-      await faceapi.tf.ready();
+      // WebGL (GPU) on almost all phones/computers; WebAssembly as fast fallback; plain JS last.
+      const tf = faceapi.tf;
+      tf.setWasmPaths?.(new URL('../vendor/', import.meta.url).href);
+      let ok = false;
+      for (const backend of ['webgl', 'wasm', 'cpu']) {
+        try { ok = await tf.setBackend(backend); if (ok) { await tf.ready(); break; } } catch { ok = false; }
+      }
+      if (!ok) throw new Error('Gesichtserkennung wird von diesem Browser nicht unterstützt');
       await Promise.all([
         faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
         faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),

@@ -124,7 +124,7 @@ export function buildBook(photos, { perMonth, prints, requirePeople, overrides }
   for (const [key, items] of [...months].sort((a, b) => a[0].localeCompare(b[0]))) {
     const ok = items.filter(p => !overrides[p.id]?.excluded);
     let cands = requirePeople ? ok.filter(p => p.people.length) : ok;
-    if (requirePeople && cands.length < Math.min(perMonth, 6)) {
+    if (requirePeople && cands.length && cands.length < Math.min(perMonth, 6)) {
       // too few family photos this month: top up with the best other photos
       cands = cands.concat(ok.filter(p => !p.people.length).sort((a, b) => b.score - a.score).slice(0, perMonth - cands.length));
     }
@@ -133,7 +133,9 @@ export function buildBook(photos, { perMonth, prints, requirePeople, overrides }
     const top = pickTop(cands, perMonth, pinned).sort((a, b) => a.date - b.date);
     const forced = new Set(top.filter(p => overrides[p.id]?.print === true).map(p => p.id));
     const blocked = new Set(top.filter(p => overrides[p.id]?.print === false).map(p => p.id));
-    const printPicks = pickPrint(top.filter(p => !blocked.has(p.id)), Math.max(prints, forced.size), forced);
+    // automatic recommendations, plus everything the user marked by hand
+    const auto = pickPrint(top.filter(p => !blocked.has(p.id)), prints, new Set());
+    const printPicks = [...new Set([...auto, ...top.filter(p => forced.has(p.id))])];
     const reserve = cands.filter(p => !top.includes(p)).sort((a, b) => b.score - a.score).slice(0, RESERVE);
     out.push({ key, total: items.length, top, print: new Set(printPicks.map(p => p.id)), reserve });
   }

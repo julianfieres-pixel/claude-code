@@ -411,7 +411,7 @@ function viewBook() {
   const coverPhoto = pickCover(book);
   const first = book[0].key, last = book[book.length - 1].key;
   const span = first === last ? monthTitle(first) : `${monthTitle(first)} – ${monthTitle(last)}`;
-  const noPlace = all.filter(p => !p.place).length;
+  const noPlace = all.filter(p => !p.place && p.lat == null).length;
   const totalPrint = book.reduce((a, m) => a + m.print.size, 0);
 
   const titleEl = el('h1', { contenteditable: 'true', spellcheck: 'false', 'aria-label': 'Titel bearbeiten',
