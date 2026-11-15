@@ -26,6 +26,8 @@ Beide arbeiten **lokal**: Die Fotos verlassen das Gerät nicht. Nur für Ortsnam
 Alles wird im Browser-Speicher des Geräts gespeichert (IndexedDB). Wenn ihr die App schließt und wieder öffnet, ist das Buch noch da.
 
 ### Starten
+**Live-Version:** https://unser-fotojahr.vercel.app (Vercel-Projekt `unser-fotojahr`, Ordner `family-photobook/web`).
+
 Die App besteht nur aus statischen Dateien und braucht keinen Server mit eigener Logik. Für Handys muss sie über **HTTPS** erreichbar sein:
 
 - **Lokal am Computer testen**: `cd web && python3 -m http.server 8000`, dann http://localhost:8000 öffnen.
