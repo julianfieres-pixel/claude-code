@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GwG-Risikoanalyse · Prozess-Cockpit (Demo)</title>
+<style>
+:root{
+  --navy:#0a2342; --navy2:#12335e; --blue:#0072ce; --teal:#00a39b; --bg:#f4f6f9; --card:#ffffff;
+  --ink:#14233a; --mute:#5c6b80; --line:#dde3ea; --soft:#eef2f7;
+  --ok:#1a8f5a; --warn:#c98a00; --high:#d9622b; --crit:#c0293b;
+  --okbg:#e3f4ec; --warnbg:#fdf3d7; --highbg:#fde6d8; --critbg:#f9dde1;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b1522; --card:#132235; --ink:#e8eef6; --mute:#9aabc0; --line:#24364d; --soft:#1a2c43;
+    --okbg:#123a2a; --warnbg:#3d3210; --highbg:#44261a; --critbg:#451c24; --blue:#4da3ea; --teal:#2cc7bf;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b1522; --card:#132235; --ink:#e8eef6; --mute:#9aabc0; --line:#24364d; --soft:#1a2c43;
+  --okbg:#123a2a; --warnbg:#3d3210; --highbg:#44261a; --critbg:#451c24; --blue:#4da3ea; --teal:#2cc7bf;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Helvetica Neue",Helvetica,Arial,system-ui,sans-serif}
+a{color:var(--blue)}
+button{font:inherit;cursor:pointer}
+header{background:linear-gradient(120deg,var(--navy) 0%,var(--navy2) 70%,#17477f 100%);color:#fff}
+.hd{max-width:1280px;margin:0 auto;padding:18px 20px 0}
+.brand{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.wm{font-weight:700;letter-spacing:.22em;font-size:17px;border-left:4px solid var(--teal);padding-left:12px}
+.tag{font-size:11px;letter-spacing:.08em;text-transform:uppercase;background:rgba(255,255,255,.14);padding:3px 9px;border-radius:99px}
+.hd h1{font-size:26px;font-weight:300;margin:14px 0 4px;letter-spacing:-.01em}
+.hd p{margin:0;color:#c5d4e8;max-width:820px}
+.kpis{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 0}
+.kpi{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:9px 14px;min-width:132px}
+.kpi b{display:block;font-size:20px;font-weight:600}
+.kpi span{font-size:11px;color:#b9c9df;text-transform:uppercase;letter-spacing:.06em}
+nav{display:flex;gap:2px;margin-top:16px;overflow-x:auto}
+nav button{background:none;border:0;color:#c5d4e8;padding:11px 16px;border-bottom:3px solid transparent;white-space:nowrap}
+nav button.on{color:#fff;border-color:var(--teal);font-weight:600}
+main{max-width:1280px;margin:0 auto;padding:20px}
+.grid{display:grid;grid-template-columns:290px 1fr;gap:20px;align-items:start}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
+.card h2{margin:0 0 4px;font-size:20px;font-weight:600}
+.card h3{margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute)}
+.steps{padding:8px}
+.st{display:flex;gap:11px;align-items:center;width:100%;text-align:left;background:none;border:0;color:inherit;padding:10px;border-radius:9px}
+.st:hover{background:var(--soft)}
+.st.on{background:var(--soft);box-shadow:inset 3px 0 0 var(--blue)}
+.dot{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--soft);color:var(--mute);border:2px solid var(--line)}
+.st.done .dot{background:var(--ok);border-color:var(--ok);color:#fff}
+.st.prog .dot{border-color:var(--blue);color:var(--blue)}
+.st small{display:block;color:var(--mute);font-size:12px}
+.bar{height:6px;background:var(--soft);border-radius:9px;overflow:hidden;margin:8px 0 2px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--teal));transition:width .3s}
+.sec{margin-top:16px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:1000px){.two{grid-template-columns:1fr}}
+ul.plain{margin:0;padding-left:18px}
+ul.plain li{margin:3px 0}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;cursor:pointer}
+.chk input{margin-top:3px;accent-color:var(--blue);width:16px;height:16px;flex:none}
+.chk.on{background:var(--okbg);border-color:transparent}
+.doc{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px}
+.doc b{font-weight:600}
+.doc code,.tree code{font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;color:var(--mute);word-break:break-all}
+.pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;background:var(--soft);color:var(--mute);margin-right:4px;white-space:nowrap}
+.pill.ok{background:var(--okbg);color:var(--ok)} .pill.warn{background:var(--warnbg);color:var(--warn)}
+.pill.high{background:var(--highbg);color:var(--high)} .pill.crit{background:var(--critbg);color:var(--crit)}
+.btn{border:1px solid var(--blue);background:var(--blue);color:#fff;border-radius:7px;padding:6px 13px;font-size:13px}
+.btn.ghost{background:none;color:var(--blue)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.sig{display:flex;gap:12px;align-items:center;justify-content:space-between;border:1px dashed var(--line);border-radius:8px;padding:10px 12px;margin-bottom:6px;flex-wrap:wrap}
+.sig.on{border-style:solid;background:var(--okbg);border-color:transparent}
+.sig .scr{font:italic 18px "Snell Roundhand","Brush Script MT",cursive;color:var(--navy)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .sig .scr{color:#cfe2f8}}
+.note{font-size:12.5px;color:var(--mute)}
+.law a{display:inline-block;margin:0 6px 6px 0;font-size:12.5px;text-decoration:none;border:1px solid var(--line);padding:3px 9px;border-radius:99px}
+.law a:hover{border-color:var(--blue)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute)}
+.tw{overflow-x:auto}
+.hm{display:grid;grid-template-columns:34px repeat(5,1fr);gap:4px;max-width:520px}
+.hm .c{aspect-ratio:1.25;border-radius:6px;position:relative;display:flex;flex-wrap:wrap;gap:3px;align-content:center;justify-content:center}
+.hm .ax{display:grid;place-items:center;font-size:11px;color:var(--mute)}
+.pt{width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;border:2px solid #fff}
+.rk{display:grid;grid-template-columns:1fr;gap:12px}
+.rr{border:1px solid var(--line);border-radius:9px;padding:10px 12px}
+.rr label{display:grid;grid-template-columns:150px 1fr 24px;gap:8px;align-items:center;font-size:12.5px;color:var(--mute)}
+.rr input[type=range]{width:100%;accent-color:var(--blue)}
+.tree details{margin:4px 0 4px 14px}
+.tree summary{cursor:pointer;font-weight:600}
+.tree .f{margin:3px 0 3px 30px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tl{border-left:2px solid var(--line);margin-left:6px;padding-left:16px}
+.tl div{position:relative;margin-bottom:12px}
+.tl div:before{content:"";position:absolute;left:-22px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--teal)}
+footer{max-width:1280px;margin:0 auto;padding:6px 20px 30px;font-size:12px;color:var(--mute)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+</style>
+</head>
+<body>
+<header><div class="hd">
+  <div class="brand"><div class="wm">STATE STREET</div><span class="tag">Konzept-Demo · fiktiv · kein offizielles Dokument</span></div>
+  <h1>GwG-Risikoanalyse · Prozess-Cockpit</h1>
+  <p>Institutsweite Risikoanalyse nach § 5 GwG mit Blick auf die EU-Geldwäscheverordnung (EU) 2024/1624: Prozessschritte, Unterlagen, Ablage, Checklisten und Freigaben in einem Best-Practice-Setup.</p>
+  <div class="kpis" id="kpis"></div>
+  <nav id="nav"></nav>
+</div></header>
+<main id="main"></main>
+<footer>
+  Illustratives Konzept mit fiktiven Daten, Rollen, Ablagepfaden und Scoring-Methodik. Kein Rechtsrat; Paragraphen- und Artikelverweise vor Verwendung am Originaltext prüfen. Farbwelt an State Street angelehnt; nicht von State Street erstellt, geprüft oder freigegeben.
+</footer>
+
+<script>
+const L={
+ gwg:n=>({t:`§ ${n} GwG`,u:`https://www.gesetze-im-internet.de/gwg_2017/__${n}.html`}),
+ anl:n=>({t:`Anlage ${n} GwG`,u:`https://www.gesetze-im-internet.de/gwg_2017/anlage_${n}.html`}),
+ kwg:{t:'§ 25h KWG',u:'https://www.gesetze-im-internet.de/kredwg/__25h.html'},
+ amlr:a=>({t:`AMLR Art. ${a}`,u:'https://eur-lex.europa.eu/eli/reg/2024/1624/oj'}),
+ amld:{t:'AMLD6 (EU) 2024/1640',u:'https://eur-lex.europa.eu/eli/dir/2024/1640/oj'},
+ bafin:{t:'BaFin AuA GwG',u:'https://www.bafin.de/DE/Aufsicht/Geldwaeschepraevention/geldwaeschepraevention_node.html'},
+ eba:{t:'EBA Risk Factor GL (EBA/GL/2021/02)',u:'https://www.eba.europa.eu/'},
+ fiu:{t:'FIU',u:'https://www.zoll.de/DE/FIU/fiu_node.html'}
+};
+const R='/Compliance/AML/Risikoanalyse/2026';
+const STEPS=[
+{t:'Governance & Scoping',s:'Auftrag, Rollen, Zeitplan',
+ goal:'Formaler Start des Zyklus: Verantwortlichkeiten, Geltungsbereich (Rechtseinheiten, Zweigniederlassungen) und Methodik sind verbindlich festgelegt.',
+ act:['Projektauftrag durch das zuständige Mitglied der Leitungsebene','Scope: Rechtseinheit, Zweigniederlassungen, Auslagerungen','Methodik-Version bestätigen oder ändern (Change-Log)','Zeit- und Ressourcenplan mit 1st Line abstimmen'],
+ law:[L.gwg(4),L.gwg(7),L.amlr('9'),L.amlr('11')],
+ docs:[['Projektauftrag Risikoanalyse','PDF, signiert','/01_Governance/Projektauftrag_v1.0.pdf','GwB'],['Methodikhandbuch','DOCX → PDF/A','/01_Governance/Methodik_v4.2.pdf','GwB'],['RACI & Zeitplan','XLSX','/01_Governance/RACI_Zeitplan.xlsx','AML-Analyst']],
+ chk:['Zuständiges Mitglied der Leitungsebene benannt (§ 4 Abs. 3 GwG)','GwB und Stellvertretung bestellt und der Aufsicht angezeigt','Scope inkl. Zweigniederlassungen und Auslagerungen dokumentiert','Methodik-Änderungen seit Vorjahr im Change-Log erfasst','Interessenkonflikte der Beteiligten geprüft'],
+ sig:['AML-Analyst (Ersteller)','Geldwäschebeauftragte:r (Prüfung)','Mitglied der Leitungsebene (Auftrag)']},
+{t:'Bestandsaufnahme',s:'Daten zu Kunden, Produkten, Ländern',
+ goal:'Vollständige, abgestimmte Datengrundlage über die institutsspezifische Geschäftstätigkeit.',
+ act:['Kundenbestand nach Typ, Sitzland, Rechtsform, PEP-/UBO-Bezug','Produkt- und Dienstleistungskatalog (Custody, Fondsadministration, FX, Wertpapierleihe)','Transaktionsvolumina und Korridore, Korrespondenzbeziehungen','Vertriebs- und Zugangswege, Auslagerungen, Gruppenverflechtung'],
+ law:[L.gwg(5),L.bafin,L.amlr('10')],
+ docs:[['Dateninventar & Datenquellen','XLSX','/02_Bestandsaufnahme/Dateninventar.xlsx','Data Office'],['Datenqualitätsbericht','PDF','/02_Bestandsaufnahme/DQ_Bericht.pdf','Data Office'],['Produkt- & Kundenportfolio-Extrakt','CSV, Hash-gesichert','/02_Bestandsaufnahme/Extrakt_Stichtag_3009.csv','AML-Analyst'],['Abstimmprotokoll 1st Line','PDF, signiert','/02_Bestandsaufnahme/Abstimmung_Business.pdf','Business Risk Owner']],
+ chk:['Stichtag und Datenquellen festgelegt','Abgleich Kundenbestand mit Kernbanksystem (Vollständigkeit)','Alle Produkte inkl. Neuprodukte (NPP) erfasst','Länderliste gegen EU-Hochrisikoliste und FATF-Listen geprüft','Datenqualitätsmängel bewertet und dokumentiert'],
+ sig:['Data Office (Datenlieferung)','Business Risk Owner (Vollständigkeit)','AML-Analyst (Abnahme)']},
+{t:'Risikoidentifikation',s:'Risikofaktoren & Szenarien',
+ goal:'Alle relevanten Geldwäsche- und Terrorismusfinanzierungsrisiken sind identifiziert und den Kategorien zugeordnet.',
+ act:['Abgleich mit Anlagen 1 und 2 GwG und EBA-Risikofaktoren','Einbezug Nationale Risikoanalyse und supranationale Risikoanalyse der EU','Typologien: FIU-Jahresbericht, FATF, interne Verdachtsfälle','Workshops mit 1st Line; Sanktions- und Proliferationsbezug'],
+ law:[L.gwg(5),L.anl(1),L.anl(2),L.eba,L.amlr('10'),L.fiu],
+ docs:[['Risikoinventar','XLSX','/03_Identifikation/Risikoinventar.xlsx','AML-Analyst'],['Workshop-Protokolle','PDF','/03_Identifikation/Workshops/','AML-Analyst'],['Quellenverzeichnis (NRA, SNRA, FIU, FATF)','PDF','/03_Identifikation/Quellen.pdf','AML-Analyst']],
+ chk:['Kunden-, Produkt-, Transaktions-, Vertriebs- und Länderrisiken abgedeckt','NRA und SNRA in aktueller Fassung ausgewertet','Interne Erkenntnisse (Verdachtsmeldungen, Revisionsfeststellungen) einbezogen','Neue Typologien (z. B. Krypto-Bezug, Sanktionsumgehung) bewertet','Terrorismusfinanzierung gesondert betrachtet'],
+ sig:['AML-Analyst (Ersteller)','Geldwäschebeauftragte:r (Prüfung)']},
+{t:'Inhärentes Risiko',s:'Bewertung vor Kontrollen',
+ goal:'Jedes Risiko ist nach einheitlicher Skala bewertet; die Gewichtung ist begründet und nachvollziehbar.',
+ act:['Scoring je Kategorie auf 5er-Skala (Eintritt × Auswirkung)','Gewichtung nach Geschäftsanteil und Exponierung','Plausibilisierung gegen Vorjahr und Peer-Erkenntnisse','Dokumentation von Expert Overrides mit Begründung'],
+ law:[L.gwg(5),L.eba,L.bafin,L.amlr('10')],
+ docs:[['Scoring-Modell inhärentes Risiko','XLSX, gesperrt','/04_Bewertung/Scoring_Inhaerent.xlsx','AML-Analyst'],['Override-Register','XLSX','/04_Bewertung/Overrides.xlsx','GwB']],
+ chk:['Skalen und Schwellenwerte gemäß Methodik angewandt','Gewichte summieren sich auf 100 %','Abweichungen > 1 Stufe zum Vorjahr begründet','Overrides einzeln durch GwB genehmigt','Berechnung im Vier-Augen-Prinzip nachgerechnet'],
+ sig:['AML-Analyst (Ersteller)','Zweiter Analyst (Vier-Augen)','Geldwäschebeauftragte:r (Prüfung)']},
+{t:'Kontrollbewertung',s:'Wirksamkeit der Sicherungsmaßnahmen',
+ goal:'Angemessenheit und Wirksamkeit der internen Sicherungsmaßnahmen sind je Risiko beurteilt und belegt.',
+ act:['Mapping Risiko → Kontrolle (KYC, Monitoring, Screening, Schulung)','Design- und Wirksamkeitstests, Stichproben','Auswertung von KRIs, Revisions- und Prüfungsfeststellungen','Bewertung ausgelagerter Kontrollen'],
+ law:[L.gwg(6),L.kwg,L.gwg(10),L.gwg(15),L.amlr('9')],
+ docs:[['Risiko-Kontroll-Matrix (RCM)','XLSX','/05_Kontrollen/RCM.xlsx','AML-Analyst'],['Testnachweise & Stichproben','ZIP, Hash-gesichert','/05_Kontrollen/Testing/','Compliance Testing'],['KRI-Report','PDF','/05_Kontrollen/KRI_Q3.pdf','Compliance Testing']],
+ chk:['Jedes Risiko mit mindestens einer Schlüsselkontrolle verknüpft','Kontrolltests durch unabhängige Stelle durchgeführt','Offene Revisions- und WP-Feststellungen berücksichtigt','Monitoring-Szenarien und Schwellen kalibriert und validiert','Schulungsquote und Zuverlässigkeitsprüfung ausgewertet'],
+ sig:['Compliance Testing (Ersteller)','Business Risk Owner (Kenntnisnahme)','Geldwäschebeauftragte:r (Prüfung)']},
+{t:'Restrisiko & Maßnahmen',s:'Residualrisiko, Aktionsplan',
+ goal:'Restrisiko je Kategorie ist ermittelt, mit dem Risikoappetit abgeglichen und mit terminierten Maßnahmen hinterlegt.',
+ act:['Ableitung Restrisiko = inhärentes Risiko nach Kontrollwirkung','Abgleich mit Risikoappetit-Statement','Maßnahmenplan mit Owner, Termin, Budget','Eskalation von Überschreitungen an die Leitungsebene'],
+ law:[L.gwg(4),L.gwg(6),L.amlr('10')],
+ docs:[['Restrisiko-Übersicht & Heatmap','PDF','/06_Restrisiko/Heatmap.pdf','AML-Analyst'],['Maßnahmenplan','XLSX, getrackt','/06_Restrisiko/Massnahmenplan.xlsx','GwB'],['Risikoakzeptanzen','PDF, signiert','/06_Restrisiko/Akzeptanzen/','Leitungsebene']],
+ chk:['Restrisiko je Kategorie und gesamt ermittelt','Überschreitungen des Risikoappetits identifiziert','Jede Maßnahme mit Owner, Termin und Messgröße versehen','Risikoakzeptanzen einzeln begründet und befristet','Auswirkung auf Kundenrisiko-Scoring geprüft'],
+ sig:['AML-Analyst (Ersteller)','Business Risk Owner (Maßnahmen-Commitment)','Geldwäschebeauftragte:r (Prüfung)']},
+{t:'Genehmigung',s:'Freigabe durch Leitungsebene',
+ goal:'Risikoanalyse und Sicherungsmaßnahmen sind durch das benannte Mitglied der Leitungsebene genehmigt.',
+ act:['Finaler Bericht mit Management Summary','Qualitätssicherung und Versionsabschluss','Vorlage und Beschluss in der Geschäftsleitung','Information des Aufsichtsorgans'],
+ law:[L.gwg(4),L.gwg(5),L.amlr('10'),L.amlr('11')],
+ docs:[['Bericht Risikoanalyse (final)','PDF/A, QES','/07_Genehmigung/Risikoanalyse_2026_final.pdf','GwB'],['Beschlussvorlage & Protokollauszug','PDF','/07_Genehmigung/Beschluss_GL.pdf','Corporate Secretary'],['QS-Checkliste','PDF','/07_Genehmigung/QS_Checkliste.pdf','Stv. GwB']],
+ chk:['Bericht vollständig, Versionsstand eingefroren','QS durch stellvertretende:n GwB abgeschlossen','Vorlage fristgerecht an die Geschäftsleitung verteilt','Beschluss protokolliert','Aufsichtsorgan informiert'],
+ sig:['Geldwäschebeauftragte:r (Verfasser)','Stv. GwB (Qualitätssicherung)','Mitglied der Leitungsebene (Genehmigung, QES)']},
+{t:'Ablage & Reporting',s:'Revisionssichere Dokumentation',
+ goal:'Die Risikoanalyse ist revisionssicher abgelegt und kann der Aufsicht auf Verlangen in aktueller Fassung vorgelegt werden.',
+ act:['WORM-Archivierung mit Hashwert und Zeitstempel','Zugriffskonzept (Need-to-know)','Kommunikation an 1st Line, Gruppe, Revision, Abschlussprüfer','Bereitstellungspaket für BaFin vorbereiten'],
+ law:[L.gwg(5),L.gwg(8),L.gwg(9),L.amlr('77'),L.amlr('16')],
+ docs:[['Archivierungsnachweis (Hash, Zeitstempel)','PDF','/08_Ablage/Archivnachweis.pdf','Records Management'],['Verteiler & Kommunikationsnachweis','PDF','/08_Ablage/Verteiler.pdf','GwB'],['Aufsichtspaket','ZIP','/08_Ablage/Aufsichtspaket/','GwB']],
+ chk:['Alle Dokumente der Schritte 1–7 im Archiv, Hashwerte geprüft','Aufbewahrungsfrist und Löschkonzept hinterlegt','Zugriffsrechte rezertifiziert','Ergebnisse an Gruppe gemeldet (gruppenweite Pflichten)','Aufsichtspaket vollständig und abrufbar'],
+ sig:['Records Management (Archivierung)','Geldwäschebeauftragte:r (Abschluss)']},
+{t:'Monitoring & Update',s:'Trigger, Jahreszyklus, Revision',
+ goal:'Die Risikoanalyse bleibt aktuell: jährliche Überprüfung, anlassbezogene Updates und unabhängige Prüfung sind verankert.',
+ act:['Trigger-Katalog (neue Produkte, M&A, Gesetzesänderung, Länderlisten)','Quartalsweises Maßnahmen-Tracking','Prüfung durch Interne Revision','Gap-Analyse zur AMLR (Anwendung ab 10.07.2027)'],
+ law:[L.gwg(5),L.gwg(6),L.amlr('10'),L.amld],
+ docs:[['Trigger-Log','XLSX','/09_Monitoring/Trigger_Log.xlsx','AML-Analyst'],['Maßnahmen-Statusbericht','PDF, quartalsweise','/09_Monitoring/Status_Q4.pdf','GwB'],['AMLR-Gap-Analyse','XLSX','/09_Monitoring/AMLR_Gap.xlsx','GwB'],['Revisionsbericht','PDF','/09_Monitoring/IR_Bericht.pdf','Interne Revision']],
+ chk:['Trigger-Katalog aktualisiert und kommuniziert','Termin der nächsten Regelüberprüfung gesetzt (≤ 12 Monate)','Maßnahmenstatus an Leitungsebene berichtet','Revisionsprüfung eingeplant bzw. Ergebnisse verarbeitet','AMLR-/AMLA-Vorgaben (RTS, Leitlinien) im Monitoring'],
+ sig:['Geldwäschebeauftragte:r (Review)','Interne Revision (Kenntnisnahme)','Mitglied der Leitungsebene (Kenntnisnahme)']}
+];
+const CATS=[['K','Kunden','Institutionelle Anleger, Fonds, Intermediäre',25,3,4],['P','Produkte','Custody, Fondsadmin, FX, Wertpapierleihe',20,3,4],['G','Geografie','Sitz- und Zielländer, Drittstaaten',20,4,3],['V','Vertriebswege','Direkt, Gruppe, Plattformen',10,2,4],['T','Transaktionen','Volumen, Korridore, Korrespondenzbanken',25,4,3]];
+const VIEWS=[['prozess','Prozess'],['matrix','Risikomatrix'],['ablage','Ablage'],['audit','Audit-Trail'],['reg','Regulatorik']];
+const KEY='gwg-ra-demo-v1';
+let S={chk:{},doc:{},sig:{},log:[],sc:CATS.map(c=>({i:c[4],k:c[5]})),cur:0,view:'prozess'};
+try{const x=JSON.parse(localStorage.getItem(KEY));if(x&&x.sc&&x.sc.length===CATS.length)S=Object.assign(S,x)}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const now=()=>new Date().toLocaleString('de-DE',{dateStyle:'short',timeStyle:'medium'});
+const log=(who,what)=>{S.log.unshift({t:now(),who,what});if(S.log.length>300)S.log.pop()};
+const cnt=i=>{const s=STEPS[i];let d=0;const n=s.chk.length+s.docs.length+s.sig.length;
+  s.chk.forEach((_,j)=>S.chk[i+'-'+j]&&d++);s.docs.forEach((_,j)=>S.doc[i+'-'+j]&&d++);s.sig.forEach((_,j)=>S.sig[i+'-'+j]&&d++);return[d,n]};
+const done=i=>{const[d,n]=cnt(i);return d===n};
+const ready=i=>STEPS[i].chk.every((_,j)=>S.chk[i+'-'+j])&&STEPS[i].docs.every((_,j)=>S.doc[i+'-'+j]);
+const resid=(i,k)=>Math.max(1,i-(k-1)*0.6);
+const lvl=r=>r<2?['Niedrig','ok']:r<3?['Mittel','warn']:r<4?['Erhöht','high']:['Hoch','crit'];
+const total=()=>{let w=0,a=0,b=0;CATS.forEach((c,x)=>{w+=c[3];a+=c[3]*S.sc[x].i;b+=c[3]*resid(S.sc[x].i,S.sc[x].k)});return[a/w,b/w]};
+
+function head(){
+  const all=STEPS.map((_,i)=>cnt(i)),d=all.reduce((a,x)=>a+x[0],0),n=all.reduce((a,x)=>a+x[1],0);
+  const sg=Object.keys(S.sig).length,sn=STEPS.reduce((a,s)=>a+s.sig.length,0);
+  const dc=Object.keys(S.doc).length,dn=STEPS.reduce((a,s)=>a+s.docs.length,0);
+  const[,r]=total(),l=lvl(r);
+  kpis.innerHTML=[[Math.round(d/n*100)+' %','Fortschritt'],[STEPS.filter((_,i)=>done(i)).length+' / '+STEPS.length,'Schritte abgeschlossen'],[dc+' / '+dn,'Unterlagen abgelegt'],[sg+' / '+sn,'Unterschriften'],[r.toFixed(1)+' · '+l[0],'Restrisiko gesamt']]
+    .map(k=>`<div class="kpi"><b>${k[0]}</b><span>${k[1]}</span></div>`).join('');
+  nav.innerHTML=VIEWS.map(v=>`<button data-view="${v[0]}" class="${S.view===v[0]?'on':''}">${v[1]}</button>`).join('');
+}
+function vProzess(){
+  const i=S.cur,s=STEPS[i],[d,n]=cnt(i),prev=i===0||done(i-1),rdy=ready(i);
+  const side=STEPS.map((x,j)=>{const[a,b]=cnt(j);return`<button class="st ${j===i?'on':''} ${a===b?'done':a?'prog':''}" data-step="${j}"><span class="dot">${a===b?'✓':j+1}</span><span><b>${x.t}</b><small>${x.s} · ${a}/${b}</small></span></button>`}).join('');
+  return`<div class="grid"><div class="card steps">${side}</div><div>
+  <div class="card"><div class="row"><div><h3>Schritt ${i+1} von ${STEPS.length}</h3><h2>${s.t}</h2></div>
+    <div><button class="btn ghost" data-fill="${i}">Demo: Schritt ausfüllen</button> <button class="btn ghost" data-reset="1">Zurücksetzen</button></div></div>
+    <p>${s.goal}</p><div class="bar"><i style="width:${d/n*100}%"></i></div><div class="note">${d} von ${n} Nachweisen erbracht${prev?'':' · Vorgängerschritt noch offen: Freigaben gesperrt'}</div>
+    <div class="sec law"><h3>Rechtsgrundlagen</h3>${s.law.map(l=>`<a href="${l.u}" target="_blank" rel="noopener">${l.t} ↗</a>`).join('')}</div></div>
+  <div class="two sec"><div class="card"><h3>Aktivitäten</h3><ul class="plain">${s.act.map(a=>`<li>${a}</li>`).join('')}</ul></div>
+    <div class="card"><h3>Checkliste</h3>${s.chk.map((c,j)=>{const on=S.chk[i+'-'+j];return`<label class="chk ${on?'on':''}"><input type="checkbox" data-chk="${i}-${j}" ${on?'checked':''}><span>${c}</span></label>`}).join('')}</div></div>
+  <div class="card sec"><h3>Unterlagen & Ablage</h3>${s.docs.map((x,j)=>{const on=S.doc[i+'-'+j];return`<div class="doc"><div><b>${x[0]}</b> <span class="pill">${x[1]}</span><span class="pill">Owner: ${x[3]}</span><br><code>${R}${x[2]}</code>${on?`<br><span class="note">Abgelegt ${on.t} · SHA-256 ${on.h}…</span>`:''}</div>
+    <div>${on?'<span class="pill ok">abgelegt</span>':`<button class="btn" data-doc="${i}-${j}">Ablegen</button>`}</div></div>`}).join('')}
+    <div class="note">Aufbewahrung: mindestens 5 Jahre nach Ablösung der Fassung (Policy-Annahme, angelehnt an § 8 GwG), WORM-Archiv, Zugriff nach Need-to-know.</div></div>
+  <div class="card sec"><h3>Unterschriften & Freigaben</h3>${s.sig.map((r,j)=>{const on=S.sig[i+'-'+j],can=prev&&rdy&&(j===0||S.sig[i+'-'+(j-1)]);
+    return`<div class="sig ${on?'on':''}"><div><b>${r}</b><br>${on?`<span class="scr">${esc(r.split(' (')[0])}</span> <span class="note">· ${on.t} · QES simuliert</span>`:`<span class="note">${can?'Bereit zur Zeichnung':!prev?'Gesperrt: Vorgängerschritt offen':!rdy?'Gesperrt: Checkliste und Ablage unvollständig':'Gesperrt: vorherige Unterschrift fehlt'}</span>`}</div>
+    ${on?'<span class="pill ok">gezeichnet</span>':`<button class="btn" data-sig="${i}-${j}" ${can?'':'disabled'}>Zeichnen</button>`}</div>`}).join('')}
+    <div class="note">Zeichnungsreihenfolge: Ersteller → Prüfung → Freigabe. Zeichnung erst nach vollständiger Checkliste und Ablage (Gate-Logik).</div></div>
+  <div class="row sec"><button class="btn ghost" data-step="${i-1}" ${i?'':'disabled'}>← Zurück</button><button class="btn" data-step="${i+1}" ${i<STEPS.length-1?'':'disabled'}>Weiter →</button></div>
+  </div></div>`;
+}
+function vMatrix(){
+  const[a,b]=total(),la=lvl(a),lb=lvl(b);let g='';
+  for(let i=5;i>=1;i--){g+=`<div class="ax">${i}</div>`;for(let k=1;k<=5;k++){const l=lvl(resid(i,k))[1];
+    g+=`<div class="c" style="background:var(--${l}bg)">${CATS.map((c,x)=>S.sc[x].i===i&&S.sc[x].k===k?`<span class="pt" title="${c[1]}">${c[0]}</span>`:'').join('')}</div>`}}
+  g+='<div></div>'+[1,2,3,4,5].map(k=>`<div class="ax">${k}</div>`).join('');
+  return`<div class="two"><div class="card"><h3>Bewertung je Risikokategorie</h3><div class="rk">${CATS.map((c,x)=>{const r=resid(S.sc[x].i,S.sc[x].k),l=lvl(r);
+    return`<div class="rr"><div class="row"><b><span class="pill">${c[0]}</span>${c[1]} <span class="note">· Gewicht ${c[3]} %</span></b><span class="pill ${l[1]}">Restrisiko ${r.toFixed(1)} · ${l[0]}</span></div><div class="note">${c[2]}</div>
+    <label>Inhärentes Risiko<input type="range" min="1" max="5" value="${S.sc[x].i}" data-sc="${x}-i"><b>${S.sc[x].i}</b></label>
+    <label>Kontrollwirksamkeit<input type="range" min="1" max="5" value="${S.sc[x].k}" data-sc="${x}-k"><b>${S.sc[x].k}</b></label></div>`}).join('')}</div></div>
+  <div><div class="card"><h3>Heatmap · inhärentes Risiko (↑) × Kontrollwirksamkeit (→)</h3><div class="hm">${g}</div>
+    <p class="note">Farbe = Restrisikostufe. Illustrative Methodik: Restrisiko = inhärentes Risiko − 0,6 × (Kontrollwirksamkeit − 1), Untergrenze 1; Gesamtwert gewichtet.</p></div>
+  <div class="card sec"><h3>Gesamtergebnis</h3><table><tr><th>Größe</th><th>Wert</th><th>Stufe</th></tr>
+    <tr><td>Inhärentes Risiko (gewichtet)</td><td>${a.toFixed(2)}</td><td><span class="pill ${la[1]}">${la[0]}</span></td></tr>
+    <tr><td>Restrisiko (gewichtet)</td><td>${b.toFixed(2)}</td><td><span class="pill ${lb[1]}">${lb[0]}</span></td></tr></table>
+    <p class="note">${b>=3?'Restrisiko über Risikoappetit (Annahme: < 3,0): Maßnahmenplan und Eskalation an die Leitungsebene in Schritt 6 erforderlich.':'Restrisiko innerhalb des Risikoappetits (Annahme: < 3,0). Maßnahmen zur Aufrechterhaltung in Schritt 6 dokumentieren.'}</p></div></div></div>`;
+}
+function vAblage(){
+  return`<div class="card tree"><h3>Ablagestruktur · WORM-Archiv</h3><code>${R}</code>${STEPS.map((s,i)=>{const f=s.docs.filter((_,j)=>S.doc[i+'-'+j]).length;
+    return`<details ${f?'open':''}><summary>${s.docs[0][2].split('/')[1]} <span class="pill ${f===s.docs.length?'ok':''}">${f}/${s.docs.length}</span></summary>${s.docs.map((x,j)=>{const on=S.doc[i+'-'+j];
+      return`<div class="f"><span>${on?'📄':'▫️'}</span><span>${x[0]}</span><code>${x[2].split('/').slice(2).join('/')}</code>${on?`<span class="pill ok">v1.0 · ${on.t}</span>`:'<span class="pill">offen</span>'}</div>`}).join('')}</details>`}).join('')}
+    <p class="note">Namenskonvention, Versionierung (Major.Minor), Hashwert und Zeitstempel je Dokument; Löschung erst nach Fristablauf und Freigabe durch GwB.</p></div>`;
+}
+function vAudit(){
+  return`<div class="card"><div class="row"><h3>Audit-Trail · lückenlose Protokollierung</h3><button class="btn ghost" data-csv="1">CSV exportieren</button></div>
+  ${S.log.length?`<div class="tw"><table><tr><th>Zeit</th><th>Rolle</th><th>Aktion</th></tr>${S.log.map(l=>`<tr><td style="white-space:nowrap">${l.t}</td><td>${esc(l.who)}</td><td>${esc(l.what)}</td></tr>`).join('')}</table></div>`:'<p class="note">Noch keine Einträge. Jede Checklisten-Bestätigung, Ablage und Unterschrift wird hier protokolliert.</p>'}</div>`;
+}
+function vReg(){
+  const rows=[['Unternehmensweite Risikoanalyse','§ 5 GwG','Art. 10 AMLR','Dokumentation, regelmäßige Aktualisierung, Vorlage an Aufsicht'],
+   ['Interne Strategien, Verfahren, Kontrollen','§ 6 GwG, § 25h KWG','Art. 9 AMLR','Künftig unmittelbar geltendes EU-Recht, konkretisiert durch AMLA-Standards'],
+   ['Verantwortung Leitungsebene','§ 4 Abs. 3 GwG','Art. 11 AMLR','Compliance Manager (Leitungsorgan) und Compliance Officer'],
+   ['Geldwäschebeauftragte:r','§ 7 GwG','Art. 11 AMLR','Unabhängigkeit, Ressourcen, direkte Berichtslinie'],
+   ['Kundensorgfaltspflichten','§§ 10–15 GwG','Art. 19 ff., 33, 34 AMLR','Harmonisierte CDD-Standards, Aktualisierungszyklen'],
+   ['Verdachtsmeldung','§ 43 GwG','Art. 69 AMLR','Meldung an FIU, Verbot der Informationsweitergabe'],
+   ['Aufbewahrung','§ 8 GwG','Art. 77 AMLR','Grundsatz 5 Jahre'],
+   ['Gruppenweite Pflichten','§ 9 GwG','Art. 16 AMLR','Gruppenweite Risikoanalyse und Informationsaustausch']];
+  return`<div class="two"><div class="card"><h3>Mapping heute → ab 10.07.2027</h3><div class="tw"><table><tr><th>Thema</th><th>GwG (aktuell)</th><th>EU-Recht (künftig)</th><th>Kernpunkt</th></tr>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</table></div>
+   <p class="note">Artikelzuordnung zur Orientierung; maßgeblich ist der Amtsblatt-Text. Nationale Anpassungsgesetze und AMLA-Standards (RTS, Leitlinien) laufend beobachten.</p></div>
+  <div><div class="card"><h3>Zeitleiste EU-AML-Paket</h3><div class="tl">
+   <div><b>09.07.2024</b><br>Inkrafttreten von AMLR, AMLD6 und AMLA-Verordnung</div>
+   <div><b>30.12.2024</b><br>Geldtransfer-Verordnung (EU) 2023/1113 anwendbar</div>
+   <div><b>01.07.2025</b><br>AMLA (Frankfurt am Main) nimmt Tätigkeit auf</div>
+   <div><b>10.07.2027</b><br>AMLR anwendbar; Umsetzungsfrist AMLD6</div>
+   <div><b>2028</b><br>Beginn der Direktaufsicht der AMLA über ausgewählte Institute</div></div></div>
+  <div class="card sec law"><h3>Quellen</h3>
+   <a href="https://eur-lex.europa.eu/eli/reg/2024/1624/oj" target="_blank" rel="noopener">AMLR (EU) 2024/1624 ↗</a>
+   <a href="https://eur-lex.europa.eu/eli/dir/2024/1640/oj" target="_blank" rel="noopener">AMLD6 (EU) 2024/1640 ↗</a>
+   <a href="https://eur-lex.europa.eu/eli/reg/2024/1620/oj" target="_blank" rel="noopener">AMLA-VO (EU) 2024/1620 ↗</a>
+   <a href="https://eur-lex.europa.eu/eli/reg/2023/1113/oj" target="_blank" rel="noopener">Geldtransfer-VO (EU) 2023/1113 ↗</a>
+   <a href="https://www.gesetze-im-internet.de/gwg_2017/" target="_blank" rel="noopener">GwG ↗</a>
+   <a href="${L.kwg.u}" target="_blank" rel="noopener">§ 25h KWG ↗</a>
+   <a href="${L.bafin.u}" target="_blank" rel="noopener">BaFin Geldwäscheprävention ↗</a>
+   <a href="https://www.amla.europa.eu/" target="_blank" rel="noopener">AMLA ↗</a>
+   <a href="https://www.eba.europa.eu/" target="_blank" rel="noopener">EBA ↗</a>
+   <a href="https://www.fatf-gafi.org/" target="_blank" rel="noopener">FATF ↗</a></div></div></div>`;
+}
+function render(){head();main.innerHTML={prozess:vProzess,matrix:vMatrix,ablage:vAblage,audit:vAudit,reg:vReg}[S.view]();save()}
+const hash=()=>Array.from({length:12},()=>'0123456789abcdef'[Math.random()*16|0]).join('');
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-view],[data-step],[data-doc],[data-sig],[data-fill],[data-reset],[data-csv]');if(!t||t.disabled)return;const d=t.dataset;
+  if(d.view)S.view=d.view;
+  else if(d.step!==undefined){S.cur=+d.step;S.view='prozess';scrollTo({top:0,behavior:'smooth'})}
+  else if(d.doc){const[i,j]=d.doc.split('-'),x=STEPS[i].docs[j];S.doc[d.doc]={t:now(),h:hash()};log(x[3],`Dokument abgelegt: ${x[0]} (${R}${x[2]})`)}
+  else if(d.sig){const[i,j]=d.sig.split('-');S.sig[d.sig]={t:now()};log(STEPS[i].sig[j].split(' (')[0],`Unterschrift Schritt ${+i+1} „${STEPS[i].t}“: ${STEPS[i].sig[j]}`);if(done(+i))log('System',`Schritt ${+i+1} „${STEPS[i].t}“ abgeschlossen`)}
+  else if(d.fill){const i=+d.fill,s=STEPS[i];if(i&&!done(i-1)){alert('Bitte zuerst den Vorgängerschritt abschließen.');return}
+    s.chk.forEach((_,j)=>S.chk[i+'-'+j]=1);s.docs.forEach((_,j)=>S.doc[i+'-'+j]=S.doc[i+'-'+j]||{t:now(),h:hash()});s.sig.forEach((_,j)=>S.sig[i+'-'+j]=S.sig[i+'-'+j]||{t:now()});log('Demo',`Schritt ${i+1} „${s.t}“ automatisch ausgefüllt`)}
+  else if(d.reset){if(!confirm('Gesamten Demo-Stand zurücksetzen?'))return;S={chk:{},doc:{},sig:{},log:[],sc:CATS.map(c=>({i:c[4],k:c[5]})),cur:0,view:'prozess'}}
+  else if(d.csv){const b=new Blob(['﻿Zeit;Rolle;Aktion\n'+S.log.map(l=>[l.t,l.who,l.what].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')).join('\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='audit-trail.csv';a.click();return}
+  render();
+});
+document.addEventListener('change',e=>{const d=e.target.dataset;
+  if(d.chk){const[i,j]=d.chk.split('-');if(e.target.checked){S.chk[d.chk]=1;log('AML-Analyst',`Checkliste Schritt ${+i+1}: ${STEPS[i].chk[j]}`)}else{delete S.chk[d.chk];log('AML-Analyst',`Checkliste zurückgenommen, Schritt ${+i+1}: ${STEPS[i].chk[j]}`)}render()}
+  if(d.sc){const[x,k]=d.sc.split('-');S.sc[x][k]=+e.target.value;log('AML-Analyst',`Scoring ${CATS[x][1]}: ${k==='i'?'inhärentes Risiko':'Kontrollwirksamkeit'} = ${e.target.value}`);render()}
+});
+const kpis=document.getElementById('kpis'),nav=document.getElementById('nav'),main=document.getElementById('main');
+render();
+</script>
+</body>
+</html>
