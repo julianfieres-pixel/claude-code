@@ -1,0 +1,397 @@
+<title>Maschinenradar</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: Kopf mit Laufdaten, darunter die Marktlage je Maschinenart als Zeilen mit
+   maßstäblichen Balken, dann vier Ansichten (Aktionen, Angebote, Anfragen, Auktionen). */
+:root {
+  --bg: #f2f4f7; --surface: #ffffff; --surface-2: #e8ecf1; --line: #d3dae2;
+  --fg: #15202b; --muted: #586675; --accent: #0e5a78; --accent-fg: #ffffff;
+  --ok: #1c7448; --ok-bg: #daf0e3; --warn: #8d6100; --warn-bg: #faecc6;
+  --off: #677381; --off-bg: #e2e7ec; --due: #a8371f; --due-bg: #fbe3dc;
+  --sans: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --r: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f151b; --surface: #172029; --surface-2: #202b36; --line: #2d3a47;
+    --fg: #e5ebf1; --muted: #93a1b0; --accent: #62b9da; --accent-fg: #07212c;
+    --ok: #62cf97; --ok-bg: #163827; --warn: #e6b64b; --warn-bg: #3a2e10;
+    --off: #8d99a6; --off-bg: #25303b; --due: #f0907a; --due-bg: #43201a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f151b; --surface: #172029; --surface-2: #202b36; --line: #2d3a47;
+  --fg: #e5ebf1; --muted: #93a1b0; --accent: #62b9da; --accent-fg: #07212c;
+  --ok: #62cf97; --ok-bg: #163827; --warn: #e6b64b; --warn-bg: #3a2e10;
+  --off: #8d99a6; --off-bg: #25303b; --due: #f0907a; --due-bg: #43201a;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.45 var(--sans); }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 24px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+a { color: var(--accent); }
+h1, h2 { margin: 0; text-wrap: balance; }
+h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 15px; font-weight: 600; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+
+/* Kopf */
+.head { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: baseline; justify-content: space-between; }
+.head p { margin: 4px 0 0; color: var(--muted); max-width: 65ch; }
+.runinfo { display: flex; flex-wrap: wrap; gap: 4px 20px; color: var(--muted); font-size: 13px; }
+.runinfo b { color: var(--fg); font-weight: 600; }
+
+/* Marktlage */
+.lage { margin-top: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+.lage-head, .lage-row { display: grid; grid-template-columns: minmax(180px, 1.5fr) minmax(200px, 2fr) minmax(130px, 1fr) minmax(170px, 1.3fr); gap: 8px 20px; padding: 12px 16px; align-items: center; }
+.lage-head { padding-block: 10px; border-bottom: 1px solid var(--line); }
+.lage-row + .lage-row { border-top: 1px solid var(--line); }
+.lage-row > div { min-width: 0; }
+.mname { font-weight: 600; }
+.bar { display: flex; height: 14px; border-radius: 3px; overflow: hidden; background: var(--surface-2); }
+.bar i { display: block; height: 100%; }
+.bar .s0 { background: var(--ok); } .bar .s1 { background: var(--warn); } .bar .s2 { background: var(--off); opacity: .45; }
+.barcap { display: flex; flex-wrap: wrap; gap: 2px 12px; margin-top: 5px; font-size: 12px; }
+.dot::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
+.dot.s0::before { background: var(--ok); } .dot.s1::before { background: var(--warn); } .dot.s2::before { background: var(--off); opacity: .45; }
+.hist { display: flex; align-items: flex-end; gap: 2px; height: 34px; }
+.hist i { flex: 1; min-width: 3px; background: var(--off); opacity: .5; border-radius: 1px 1px 0 0; }
+.hist i.in { background: var(--accent); opacity: 1; }
+.histcap { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 3px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 10px 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+
+/* Ansichten */
+.tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; display: flex; gap: 4px; margin-top: 24px; padding-block: 8px; background: var(--bg); overflow-x: auto; }
+.tabs button { flex: none; font: inherit; font-weight: 500; color: var(--muted); background: none; border: 1px solid transparent; border-radius: var(--r); padding: 7px 12px; cursor: pointer; }
+.tabs button:hover { color: var(--fg); background: var(--surface-2); }
+.tabs button[aria-selected="true"] { color: var(--accent-fg); background: var(--accent); }
+.tabs .cnt { font-family: var(--mono); font-size: 12px; margin-left: 6px; opacity: .8; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.panel { margin-top: 8px; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.filters input[type="search"], .filters select, .filters input[type="number"] { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 6px 9px; min-width: 0; }
+.filters input[type="search"] { flex: 1 1 220px; }
+.filters input[type="number"] { width: 110px; }
+.filters label.chk { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); }
+.count { margin-left: auto; color: var(--muted); font-size: 13px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { font: inherit; font-size: 13px; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; cursor: pointer; }
+.chips button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+.pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.pill.s0 { color: var(--ok); background: var(--ok-bg); } .pill.s1 { color: var(--warn); background: var(--warn-bg); }
+.pill.s2 { color: var(--off); background: var(--off-bg); } .pill.due { color: var(--due); background: var(--due-bg); }
+.pill.neutral { color: var(--accent); background: var(--surface-2); }
+
+/* Aktionsliste */
+.group { margin-top: 18px; }
+.group > h2 { display: flex; gap: 10px; align-items: baseline; padding-bottom: 6px; }
+.group > h2 span { font-weight: 400; font-size: 13px; color: var(--muted); }
+.list { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+.act { display: grid; grid-template-columns: 34px minmax(0, 2.2fr) minmax(0, 1.5fr) 90px 74px; gap: 4px 16px; padding: 10px 14px; align-items: center; }
+.act + .act { border-top: 1px solid var(--line); }
+.act .rank { color: var(--muted); }
+.act .title { font-weight: 600; overflow-wrap: anywhere; }
+.act .meta { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.score { display: flex; align-items: center; gap: 8px; }
+.score .track { flex: 1; height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.score .track i { display: block; height: 100%; background: var(--accent); }
+.open { font-weight: 500; white-space: nowrap; text-decoration: none; }
+.open:hover { text-decoration: underline; }
+
+/* Tabelle */
+.tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+table { border-collapse: collapse; width: 100%; min-width: 900px; }
+th, td { text-align: left; padding: 8px 12px; vertical-align: top; }
+th { position: sticky; top: 0; background: var(--surface); border-bottom: 1px solid var(--line); white-space: nowrap; }
+th button { font: inherit; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: none; border: 0; padding: 0; cursor: pointer; }
+th button:hover, th button[data-dir] { color: var(--fg); }
+th button[data-dir="1"]::after { content: " ↑"; } th button[data-dir="-1"]::after { content: " ↓"; }
+tbody tr { border-top: 1px solid var(--line); }
+tbody tr.main { cursor: pointer; }
+tbody tr.main:hover { background: var(--surface-2); }
+td.r, th.r { text-align: right; }
+tr.detail td { color: var(--muted); font-size: 13px; padding-top: 0; border-top: 0; }
+tr.detail { border-top: 0; }
+.tag { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; margin-left: 6px; }
+.pager { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 10px; color: var(--muted); font-size: 13px; }
+.pager button, .copy { font: inherit; font-size: 13px; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 5px 11px; cursor: pointer; }
+.pager button:disabled { opacity: .4; cursor: default; }
+
+/* Anfragen und Auktionen */
+details { border-top: 1px solid var(--line); }
+details:first-child { border-top: 0; }
+summary { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) 44px; gap: 4px 16px; padding: 10px 14px; cursor: pointer; align-items: center; list-style: none; }
+summary::-webkit-details-marker { display: none; }
+summary:hover { background: var(--surface-2); }
+.mail { padding: 4px 14px 14px; display: grid; gap: 8px; }
+.mail pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.5 var(--mono); background: var(--surface-2); border-radius: var(--r); padding: 12px; }
+.mailbar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.auc { display: grid; grid-template-columns: 170px minmax(0, 3fr) minmax(0, 1.4fr) 74px; gap: 4px 16px; padding: 10px 14px; align-items: center; }
+.auc + .auc { border-top: 1px solid var(--line); }
+.empty { padding: 28px 16px; text-align: center; color: var(--muted); }
+.foot { margin-top: 28px; color: var(--muted); font-size: 12px; display: grid; gap: 4px; max-width: 90ch; }
+
+@media (max-width: 760px) {
+  .lage-head { display: none; }
+  .lage-row { grid-template-columns: 1fr; }
+  .act { grid-template-columns: 28px minmax(0, 1fr) 64px; }
+  .act .why, .act .score { grid-column: 2 / -1; }
+  .act .open { grid-column: 3; grid-row: 1; justify-self: end; }
+  summary { grid-template-columns: minmax(0, 1fr) 40px; }
+  summary .offen { grid-column: 1; }
+  .auc { grid-template-columns: minmax(0, 1fr) 64px; }
+  .auc .when, .auc .where { grid-column: 1; }
+  .auc .open { grid-column: 2; grid-row: 1; justify-self: end; }
+  .count { margin-left: 0; width: 100%; }
+}
+@media (prefers-reduced-motion: no-preference) { .tabs button, .chips button { transition: background-color .12s, color .12s; } }
+</style>
+
+<div class="wrap">
+  <header class="head">
+    <div>
+      <h1>Maschinenradar</h1>
+      <p>Gebrauchte Maschinen für die Steckerfertigung: Marktlage je Maschinenart, priorisierte Aktionen und Anfrage-Entwürfe.</p>
+    </div>
+    <div class="runinfo" id="runinfo"></div>
+  </header>
+
+  <section class="lage" aria-label="Marktlage je Maschinenart">
+    <div class="lage-head label"><div>Maschinenart</div><div>Passung zur Spezifikation</div><div>Preisband (EUR, ca.)</div><div>Baujahre der Angebote</div></div>
+    <div id="lage"></div>
+    <div class="legend">
+      <span class="dot s0">passt</span><span class="dot s1">prüfen (Daten fehlen)</span><span class="dot s2">außerhalb der Spezifikation</span>
+      <span>Baujahre in 5-Jahres-Klassen, farbig ab dem Mindest-Baujahr</span>
+    </div>
+  </section>
+
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+
+  <section class="panel" id="v-aktionen" role="tabpanel">
+    <div class="filters"><div class="chips" id="actchips"></div><span class="count" id="actcount"></span></div>
+    <div id="aktionen"></div>
+  </section>
+
+  <section class="panel" id="v-angebote" role="tabpanel" hidden>
+    <div class="filters">
+      <input type="search" id="f-q" placeholder="Hersteller, Modell oder Ort suchen" aria-label="Suche">
+      <select id="f-p" aria-label="Maschinenart"></select>
+      <select id="f-s" aria-label="Passung"><option value="">Passung: alle</option><option value="0">passt</option><option value="1">prüfen</option><option value="2">außerhalb Spez.</option></select>
+      <select id="f-l" aria-label="Land"></select>
+      <select id="f-src" aria-label="Quelle"></select>
+      <input type="number" id="f-y" placeholder="Baujahr ab" aria-label="Baujahr ab" min="1950" max="2100">
+      <label class="chk"><input type="checkbox" id="f-pr"> nur mit Preis</label>
+      <span class="count" id="offcount"></span>
+    </div>
+    <div class="tablewrap"><table>
+      <thead><tr id="thead"></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+    <div class="pager"><span id="pageinfo"></span><button type="button" id="prev">Zurück</button><button type="button" id="next">Weiter</button></div>
+  </section>
+
+  <section class="panel" id="v-anfragen" role="tabpanel" hidden>
+    <p class="muted">Entwürfe für Angebote der Aktionsliste, bei denen Preis oder Daten fehlen. Es wurde nichts versendet.</p>
+    <div class="list" id="anfragen"></div>
+  </section>
+
+  <section class="panel" id="v-auktionen" role="tabpanel" hidden>
+    <div class="filters"><label class="chk"><input type="checkbox" id="f-auc" checked> nur Auktionen mit Treffer im Titel</label><span class="count" id="auccount"></span></div>
+    <div class="list" id="auktionen"></div>
+  </section>
+
+  <footer class="foot" id="foot"></footer>
+</div>
+
+<script type="application/json" id="radar-data">/*__DATA__*/null</script>
+<script>
+(function () {
+  "use strict";
+  var D = JSON.parse(document.getElementById("radar-data").textContent);
+  var $ = function (id) { return document.getElementById(id); };
+  if (!D) { $("lage").innerHTML = '<div class="empty">Keine Daten eingebettet. Bitte den Radar ausführen.</div>'; return; }
+
+  var PASS = ["passt", "prüfen", "außerhalb Spez."];
+  var nf = new Intl.NumberFormat("de-DE");
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function num(v) { return v == null ? "–" : nf.format(Math.round(v)); }
+  function safeUrl(u) { return /^https:\/\//.test(u || "") ? u : "#"; }
+  function link(u, text) { return '<a class="open" href="' + esc(safeUrl(u)) + '" target="_blank" rel="noopener noreferrer">' + text + "</a>"; }
+  function name(x) { var h = x.h || "", m = x.m || ""; return (h && m.toLowerCase().indexOf(h.toLowerCase()) !== 0 ? h + " " : "") + m; }
+
+  /* Kopf */
+  var total = D.angebote.length;
+  var neu = D.angebote.filter(function (x) { return x.neu; }).length;
+  $("runinfo").innerHTML = "<span>Stand <b>" + esc(D.lauf) + "</b></span><span><b class='num'>" + num(total) + "</b> Angebote</span><span><b class='num'>" + num(neu) + "</b> neu</span><span><b class='num'>" + D.quellen.length + "</b> Quellen</span>";
+
+  /* Marktlage */
+  $("lage").innerHTML = D.profile.map(function (p) {
+    var sum = p.n[0] + p.n[1] + p.n[2] || 1;
+    var bar = p.n.map(function (n, i) { return n ? '<i class="s' + i + '" style="width:' + (100 * n / sum).toFixed(2) + '%"></i>' : ""; }).join("");
+    var cap = p.n.map(function (n, i) { return '<span class="dot s' + i + '"><span class="num">' + num(n) + "</span> " + PASS[i] + "</span>"; }).join("");
+    var hmax = Math.max.apply(null, p.hist.map(function (b) { return b[1]; })) || 1;
+    var hist = p.hist.map(function (b) {
+      var isIn = p.ymin != null && b[0] + 4 >= p.ymin;
+      return '<i class="' + (isIn ? "in" : "") + '" style="height:' + Math.max(b[1] ? 6 : 2, 100 * b[1] / hmax).toFixed(1) + '%" title="' + (b[0] < 1980 ? "vor 1980" : b[0] + "–" + (b[0] + 4)) + ": " + b[1] + '"></i>';
+    }).join("");
+    var price = p.preise
+      ? '<div class="num">' + num(p.pmin) + " – " + num(p.pmax) + '</div><div class="muted" style="font-size:12px">Median ' + num(p.pmed) + " · " + p.preise + " mit Preis</div>"
+      : '<div class="muted">kein Angebot mit Preis</div>';
+    return '<div class="lage-row"><div><div class="mname">' + esc(p.name) + '</div><div class="muted" style="font-size:12px">' + esc(p.gruppe) + " · " + esc(p.spez) + "</div></div>" +
+      '<div><div class="bar" role="img" aria-label="' + p.n[0] + " passt, " + p.n[1] + " prüfen, " + p.n[2] + ' außerhalb">' + bar + '</div><div class="barcap">' + cap + "</div></div>" +
+      "<div>" + price + "</div>" +
+      '<div><div class="hist">' + hist + '</div><div class="histcap"><span>vor 1980</span><span>jüngstes: ' + (p.ymax || "–") + "</span></div></div></div>";
+  }).join("");
+
+  /* Ansichten */
+  var VIEWS = [["aktionen", "Aktionsliste", D.aktionen.length], ["angebote", "Angebote", total], ["anfragen", "Anfragen", D.anfragen.length], ["auktionen", "Auktionen", D.auktionen.filter(function (a) { return a.treffer.length; }).length]];
+  $("tabs").innerHTML = VIEWS.map(function (v) { return '<button type="button" role="tab" id="t-' + v[0] + '" data-v="' + v[0] + '">' + v[1] + '<span class="cnt">' + num(v[2]) + "</span></button>"; }).join("");
+  function show(v) {
+    if (!VIEWS.some(function (x) { return x[0] === v; })) v = "aktionen";
+    VIEWS.forEach(function (x) { $("v-" + x[0]).hidden = x[0] !== v; $("t-" + x[0]).setAttribute("aria-selected", x[0] === v ? "true" : "false"); });
+  }
+  $("tabs").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    show(b.dataset.v);
+    try { history.replaceState(null, "", "#" + b.dataset.v); } catch (err) { location.hash = b.dataset.v; }
+  });
+  window.addEventListener("hashchange", function () { show(location.hash.slice(1)); });
+  show(location.hash.slice(1));
+
+  /* Aktionsliste */
+  var actKinds = [];
+  D.aktionen.forEach(function (a) { if (actKinds.indexOf(a.a) < 0) actKinds.push(a.a); });
+  var actFilter = "";
+  function actPill(a) { return a.p < 0 ? "due" : (a.a.indexOf("Angebot") === 0 ? "s0" : a.a.indexOf("Preis") === 0 ? "neutral" : "s1"); }
+  function renderActs() {
+    var items = D.aktionen.filter(function (a) { return !actFilter || a.a === actFilter; });
+    $("actcount").textContent = items.length + " von " + D.aktionen.length + " Aktionen";
+    var groups = [], by = {};
+    items.forEach(function (a) { var k = a.p; if (!(k in by)) { by[k] = []; groups.push(k); } by[k].push(a); });
+    $("aktionen").innerHTML = groups.map(function (k) {
+      var title = k < 0 ? "Auktionen mit Frist" : D.profile[k].name;
+      var sub = k < 0 ? "zuerst prüfen" : D.profile[k].spez;
+      return '<div class="group"><h2>' + esc(title) + "<span>" + esc(sub) + '</span></h2><div class="list">' + by[k].map(function (a) {
+        var meta = a.p < 0
+          ? [a.art, a.o, a.t].filter(Boolean).join(" · ")
+          : [a.y ? "Bj. " + a.y : "", a.k ? num(a.k) + " kN" : "", a.bh != null ? num(a.bh) + " h" : "", a.pe ? num(a.pe) + " EUR" : "", [a.o, a.l].filter(Boolean).join(", ")].filter(Boolean).join(" · ");
+        return '<div class="act"><div class="rank num">' + a.r + '</div><div><div class="title">' + esc(name(a)) + '</div><div class="meta">' + esc(meta) + "</div></div>" +
+          '<div class="why"><span class="pill ' + actPill(a) + '">' + esc(a.a) + '</span><div class="meta">' + esc(a.g) + "</div></div>" +
+          '<div class="score" title="Punkte von 100"><span class="num">' + a.pt + '</span><span class="track"><i style="width:' + a.pt + '%"></i></span></div>' +
+          link(a.u, a.p < 0 ? "Auktion" : "Inserat") + "</div>";
+      }).join("") + "</div></div>";
+    }).join("") || '<div class="list"><div class="empty">Keine Aktionen für diesen Filter.</div></div>';
+  }
+  $("actchips").innerHTML = '<button type="button" data-a="" aria-pressed="true">Alle</button>' + actKinds.map(function (k) { return '<button type="button" data-a="' + esc(k) + '" aria-pressed="false">' + esc(k) + "</button>"; }).join("");
+  $("actchips").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    actFilter = b.dataset.a;
+    Array.prototype.forEach.call($("actchips").children, function (c) { c.setAttribute("aria-pressed", c === b ? "true" : "false"); });
+    renderActs();
+  });
+  renderActs();
+
+  /* Angebote */
+  function options(el, first, values) { el.innerHTML = '<option value="">' + first + "</option>" + values.map(function (v) { return '<option value="' + esc(v[0]) + '">' + esc(v[1]) + "</option>"; }).join(""); }
+  function distinct(key) { var c = {}; D.angebote.forEach(function (x) { if (x[key]) c[x[key]] = (c[x[key]] || 0) + 1; }); return Object.keys(c).sort(function (a, b) { return c[b] - c[a]; }).map(function (k) { return [k, k + " (" + c[k] + ")"]; }); }
+  options($("f-p"), "Maschinenart: alle", D.profile.map(function (p, i) { return [i, p.name]; }));
+  options($("f-l"), "Land: alle", distinct("l"));
+  options($("f-src"), "Quelle: alle", distinct("q"));
+  var COLS = [["s", "Passung"], ["m", "Maschine"], ["y", "Baujahr", 1], ["k", "Kraft kN", 1], ["bh", "Betriebsstd.", 1], ["pe", "Preis EUR (ca.)", 1], ["l", "Standort"], ["q", "Quelle"], ["", ""]];
+  var sortKey = "", sortDir = 1, page = 0, PER = 50, openRow = -1;
+  $("thead").innerHTML = COLS.map(function (c) { return "<th" + (c[2] ? ' class="r"' : "") + ">" + (c[0] ? '<button type="button" data-k="' + c[0] + '">' + c[1] + "</button>" : "") + "</th>"; }).join("");
+  function filtered() {
+    var q = $("f-q").value.trim().toLowerCase(), p = $("f-p").value, s = $("f-s").value, l = $("f-l").value, src = $("f-src").value, y = parseInt($("f-y").value, 10), pr = $("f-pr").checked;
+    var out = D.angebote.filter(function (x) {
+      if (p !== "" && x.p !== +p) return false;
+      if (s !== "" && x.s !== +s) return false;
+      if (l && x.l !== l) return false;
+      if (src && x.q !== src) return false;
+      if (y && !(x.y >= y)) return false;
+      if (pr && !x.pe) return false;
+      if (q && (name(x) + " " + (x.o || "") + " " + (x.l || "")).toLowerCase().indexOf(q) < 0) return false;
+      return true;
+    });
+    if (sortKey) out.sort(function (a, b) {
+      var va = sortKey === "m" ? name(a).toLowerCase() : a[sortKey], vb = sortKey === "m" ? name(b).toLowerCase() : b[sortKey];
+      if (va == null || va === "") return 1; if (vb == null || vb === "") return -1;
+      return (va < vb ? -1 : va > vb ? 1 : 0) * sortDir;
+    });
+    return out;
+  }
+  function renderRows() {
+    var all = filtered(), pages = Math.max(1, Math.ceil(all.length / PER));
+    page = Math.min(page, pages - 1);
+    var slice = all.slice(page * PER, page * PER + PER);
+    $("offcount").textContent = num(all.length) + " von " + num(total) + " Angeboten";
+    $("pageinfo").textContent = "Seite " + (page + 1) + " von " + pages;
+    $("prev").disabled = page === 0; $("next").disabled = page >= pages - 1;
+    $("rows").innerHTML = slice.map(function (x, i) {
+      var idx = page * PER + i;
+      var row = '<tr class="main" data-i="' + idx + '"><td><span class="pill s' + x.s + '">' + PASS[x.s] + "</span></td>" +
+        "<td><b>" + esc(name(x)) + "</b>" + (x.neu ? '<span class="tag">neu</span>' : "") + (x.dup ? '<span class="tag">Dublette?</span>' : "") + '<div class="muted" style="font-size:12px">' + esc(D.profile[x.p].name) + "</div></td>" +
+        '<td class="r num">' + (x.y || "–") + '</td><td class="r num">' + num(x.k) + '</td><td class="r num">' + num(x.bh) + '</td><td class="r num">' + (x.pe ? num(x.pe) : '<span class="muted">auf Anfrage</span>') + "</td>" +
+        "<td>" + esc([x.o, x.l].filter(Boolean).join(", ") || "–") + "</td><td>" + esc(x.q) + "</td><td>" + link(x.u, "Inserat") + "</td></tr>";
+      if (idx === openRow) row += '<tr class="detail"><td></td><td colspan="8"><b>' + esc(x.g) + "</b>" + (x.z ? " · Zustand: " + esc(x.z) : "") + (x.pr && x.w !== "EUR" ? " · Originalpreis " + num(x.pr) + " " + esc(x.w) : "") + "<br>" + esc(x.d) + (x.d && x.d.length >= 320 ? " …" : "") + "</td></tr>";
+      return row;
+    }).join("") || '<tr><td colspan="9" class="empty">Kein Angebot passt zu diesen Filtern.</td></tr>';
+  }
+  ["f-q", "f-p", "f-s", "f-l", "f-src", "f-y", "f-pr"].forEach(function (id) { $(id).addEventListener("input", function () { page = 0; openRow = -1; renderRows(); }); });
+  $("thead").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    if (sortKey === b.dataset.k) sortDir = -sortDir; else { sortKey = b.dataset.k; sortDir = /^(y|k|pe)$/.test(sortKey) ? -1 : 1; }
+    Array.prototype.forEach.call($("thead").querySelectorAll("button"), function (x) { x.removeAttribute("data-dir"); });
+    b.setAttribute("data-dir", String(sortDir)); page = 0; openRow = -1; renderRows();
+  });
+  $("rows").addEventListener("click", function (e) {
+    if (e.target.closest("a")) return;
+    var tr = e.target.closest("tr.main"); if (!tr) return;
+    var i = +tr.dataset.i; openRow = openRow === i ? -1 : i; renderRows();
+  });
+  $("prev").addEventListener("click", function () { page--; openRow = -1; renderRows(); });
+  $("next").addEventListener("click", function () { page++; openRow = -1; renderRows(); });
+  renderRows();
+
+  /* Anfragen */
+  $("anfragen").innerHTML = D.anfragen.map(function (d, i) {
+    return "<details><summary><div><b>" + esc(name(d)) + '</b><div class="meta muted" style="font-size:13px">' + esc([D.profile[d.p].name, d.y ? "Bj. " + d.y : "", d.l].filter(Boolean).join(" · ")) + "</div></div>" +
+      '<div class="offen muted" style="font-size:13px">Offen: ' + esc(d.offen.join(", ") || "Verfügbarkeit, Zustand") + '</div><span class="pill neutral">' + esc(d.sp) + "</span></summary>" +
+      '<div class="mail"><div class="mailbar"><b>' + esc(d.betreff) + '</b><button type="button" class="copy" data-i="' + i + '">Text kopieren</button>' + link(d.u, "Inserat") + "</div><pre id=\"mail-" + i + '">' + esc(d.text) + "</pre></div></details>";
+  }).join("") || '<div class="empty">Keine offenen Anfragen.</div>';
+  $("anfragen").addEventListener("click", function (e) {
+    var b = e.target.closest("button.copy"); if (!b) return;
+    var d = D.anfragen[+b.dataset.i], text = d.betreff + "\n\n" + d.text;
+    function fallback() { var r = document.createRange(); r.selectNodeContents($("mail-" + b.dataset.i)); var s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = "Text markiert"; }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { b.textContent = "Kopiert"; }, fallback); else fallback();
+  });
+
+  /* Auktionen */
+  function renderAuctions() {
+    var only = $("f-auc").checked;
+    var items = D.auktionen.filter(function (a) { return !only || a.treffer.length; });
+    $("auccount").textContent = items.length + " von " + D.auktionen.length + " Auktionen";
+    $("auktionen").innerHTML = items.map(function (a) {
+      return '<div class="auc"><div class="when"><div class="num">' + esc(a.t || "Termin offen") + '</div><div class="muted" style="font-size:12px">' + esc(a.art) + " · Nr. " + esc(a.nr) + "</div></div>" +
+        "<div><b>" + esc(a.titel) + "</b>" + (a.treffer.length ? '<div style="margin-top:3px">' + a.treffer.map(function (t) { return '<span class="pill s1">' + esc(t) + "</span>"; }).join(" ") + "</div>" : "") + "</div>" +
+        '<div class="where muted" style="font-size:13px">' + esc(a.o || "Ort offen") + (a.pos ? " · " + a.pos + " Positionen" : "") + "</div>" + link(a.u, "Auktion") + "</div>";
+    }).join("") || '<div class="empty">Keine Auktion mit Treffer im aktuellen Kalender.</div>';
+  }
+  $("f-auc").addEventListener("input", renderAuctions);
+  renderAuctions();
+
+  /* Fuß */
+  var usd = D.kurse && D.kurse.USD;
+  $("foot").innerHTML =
+    "<span>Quellen: " + D.quellen.map(function (q) { return esc(q.q) + (q.n ? " " + num(q.n) : "") + (q.gekappt ? " (Abdeckung gekappt)" : "") + (q.fehler ? " (Fehler im Lauf)" : ""); }).join(" · ") + "</span>" +
+    "<span>Preise sind Angebotspreise der Inserate." + (usd ? " Umrechnung mit dem Näherungskurs 1 USD = " + String(usd).replace(".", ",") + " EUR aus der Konfiguration." : "") + " Passung und Punkte sind regelbasiert und ersetzen keine Prüfung des Inserats.</span>";
+})();
+</script>

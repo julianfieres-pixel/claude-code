@@ -260,3 +260,22 @@ def test_hersteller_pflicht_filters_other_brands():
     bihler = _listing(titel="Stanz- Biegeautomat BIHLER GRM 80", kategorie="Stanz- Biegeautomat",
                       hersteller="BIHLER", baujahr=1999)
     assert profiles.classify(bihler, CFG) and bihler.profil_id == "stanzbiegeautomat"
+
+
+def test_dashboard_render_embeds_data_safely():
+    import json
+    import re
+
+    from radar import dashboard
+
+    lst = _classified(titel="Stanzautomat Bruderer BSTA 510</script>", kategorie="Stanzautomat",
+                      hersteller="Bruderer", modell="BSTA 510</script>", baujahr=2021,
+                      land="Deutschland", preis=450000.0, waehrung="EUR")
+    acts = scoring.rank([lst], [], CFG, 5)
+    data = dashboard.build(CFG, [lst], [], [], {lst.key: "r"}, "r", acts, [])
+    assert data["profile"][0]["n"] == [1, 0, 0] and data["angebote"][0]["neu"]
+    html = dashboard.render(data)
+    assert html.startswith("<!doctype html>") and "/*__DATA__*/" not in html
+    payload = re.search(r'id="radar-data">(.*?)</script>', html, re.S).group(1)
+    assert json.loads(payload)["angebote"][0]["m"] == "BSTA 510</script>"
+    assert not dashboard.render(data, standalone=False).startswith("<!doctype")

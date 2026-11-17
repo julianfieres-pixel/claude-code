@@ -16,7 +16,8 @@ python -m radar --llm                # fehlende Felder per Claude ergänzen (ANT
 python -m pytest tests               # Tests ohne Netzwerk
 ```
 
-Ergebnis: `out/maschinenradar_<Datum>.xlsx` und der Bestand `out/radar.sqlite`.
+Ergebnis: das Dashboard `out/dashboard.html` (im Browser öffnen, kein Server nötig),
+die Excel-Datei `out/maschinenradar_<Datum>.xlsx` und der Bestand `out/radar.sqlite`.
 
 ## Ablauf
 
@@ -36,6 +37,7 @@ config/maschinen.yaml ─► Quellen-Adapter ─► Extraktion ─► Zuordnung 
 | LLM (optional) | `radar/llm.py` | Ergänzt bei Angeboten mit Status „prüfen" fehlende Felder aus dem Inseratstext |
 | Priorisierung | `radar/scoring.py` | Punktzahl 0–100 und empfohlene Aktion je Angebot |
 | Anfragen | `radar/outreach.py` | Anfrage-Entwurf je Angebot mit offenen Punkten, deutsch oder englisch |
+| Dashboard | `radar/dashboard.py`, `radar/templates/dashboard.html` | Eine HTML-Datei mit eingebetteten Daten: Marktlage, Aktionsliste, Angebote mit Filtern, Anfragen, Auktionen |
 | Bericht | `radar/report.py` | Excel mit den Blättern Aktionsliste, Anfragen, Lage, Angebote, Auktionen, Lauf |
 
 ## Quellen

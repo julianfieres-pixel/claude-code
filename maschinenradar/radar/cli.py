@@ -8,7 +8,7 @@ from pathlib import Path
 
 import os
 
-from . import llm, outreach, profiles, report, scoring
+from . import dashboard, llm, outreach, profiles, report, scoring
 from .http import FetchError, Fetcher
 from .models import Listing, SourceLog
 from .sources import LISTING_SOURCES, netbid
@@ -89,6 +89,11 @@ def run(args: argparse.Namespace) -> int:
           f"{store.not_seen_in(run_id)} frühere Angebote nicht mehr gefunden, "
           f"{fetcher.requests_made} Abrufe")
     print(f"Aktionsliste: {len(actions)} Einträge, {len(drafts)} Anfrage-Entwürfe")
+    data = dashboard.build(cfg, listings, auctions, logs, first_seen, run_id, actions, drafts)
+    dashboard.write(out / "dashboard.html", data)
+    if args.dashboard_fragment:
+        dashboard.write(Path(args.dashboard_fragment), data, standalone=False)
+    print(f"Dashboard: {out / 'dashboard.html'}")
     print(f"Excel: {xlsx}")
     return 1 if logs and all(g.fehler for g in logs) else 0
 
@@ -102,6 +107,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--max-seiten", type=int, default=6, help="Ergebnisseiten je Suchanfrage")
     ap.add_argument("--pause", type=float, default=3.0, help="Sekunden zwischen Abrufen je Host")
     ap.add_argument("--cache-stunden", type=float, default=0, help="Seiten so lange aus dem Cache lesen")
+    ap.add_argument("--dashboard-fragment", help="Dashboard zusätzlich ohne HTML-Rahmen schreiben (zum Einbetten)")
     ap.add_argument("--llm", action="store_true", help="Fehlende Felder per Claude ergänzen (braucht ANTHROPIC_API_KEY)")
     ap.add_argument("--llm-max", type=int, default=50, help="Höchstzahl Angebote für die LLM-Extraktion")
     return run(ap.parse_args(argv))
