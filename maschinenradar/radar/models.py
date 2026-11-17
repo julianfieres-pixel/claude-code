@@ -23,6 +23,9 @@ class Listing:
     zustand: str = ""
     betriebsstunden: int | None = None
     kraft_kn: float | None = None
+    hubzahl_max: int | None = None
+    stange_mm: float | None = None
+    llm_ergaenzt: bool = False
     verkaeufer: str = ""
     beschreibung: str = ""
     suchanfrage: str = ""

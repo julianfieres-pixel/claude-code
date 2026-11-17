@@ -184,3 +184,79 @@ def test_mark_duplicates():
     profiles.mark_duplicates([a, b, c])
     assert a.moegliche_dublette == "" and b.moegliche_dublette == "a:1"
     assert c.moegliche_dublette == "a:1"
+
+
+# -- Phase 2: Priorisierung, Anfragen, LLM ----------------------------------
+from radar import llm, outreach, scoring  # noqa: E402
+from radar.models import Auction  # noqa: E402
+
+
+def _classified(**kw) -> Listing:
+    lst = _listing(**kw)
+    assert profiles.classify(lst, CFG)
+    return lst
+
+
+def test_scoring_order_and_actions():
+    top = _classified(titel="Stanzautomat Bruderer BSTA 510-125", kategorie="Stanzautomat",
+                      hersteller="Bruderer", modell="BSTA 510-125", baujahr=2021,
+                      land="Deutschland", preis=450000.0, waehrung="EUR", betriebsstunden=9000)
+    ask = _classified(quelle_id="2", titel="Stanzautomat Bruderer BSTA 410", kategorie="Stanzautomat",
+                      hersteller="Bruderer", modell="BSTA 410", baujahr=2008, land="USA")
+    unknown = _classified(quelle_id="3", titel="Stanzautomat Kyori", kategorie="Stanzautomat")
+    old = _classified(quelle_id="4", titel="Stanzautomat Bruderer BSTA 25", kategorie="Stanzautomat",
+                      hersteller="Bruderer", modell="BSTA 25", baujahr=1985)
+    au = Auction("netbid", "1", "u", "Punching machines", treffer=["punching"])
+    acts = scoring.rank([old, unknown, ask, top], [au], CFG, per_profile=10)
+    assert [a.aktion for a in acts] == [
+        scoring.A_AUKTION, scoring.A_VERHANDELN, scoring.A_PREIS, scoring.A_DATEN]
+    assert acts[1].punkte > acts[2].punkte > acts[3].punkte
+    assert scoring.score(old, CFG) is None
+
+
+def test_outreach_language_and_open_points():
+    de = _classified(titel="Stanzautomat Bruderer BSTA 410", kategorie="Stanzautomat",
+                     hersteller="Bruderer", modell="BSTA 410", baujahr=2008, land="Deutschland",
+                     url="https://example.org/1")
+    d = outreach.draft(de, CFG)
+    assert d.sprache == "DE" and "Bruderer BSTA 410" in d.betreff
+    assert "Preis (netto" in d.text and "Baujahr und Seriennummer" not in d.text
+    assert "https://example.org/1" in d.text
+    en = _classified(titel="Injection molding machine Engel", kategorie="Injection Molding", land="USA")
+    d = outreach.draft(en, CFG)
+    assert d.sprache == "EN" and "Year of manufacture" in d.text and "clamping force" in d.text
+
+
+class _FakeMessages:
+    def parse(self, **kw):
+        assert kw["output_format"] is llm.Extracted and kw["model"] == "m"
+
+        class R:
+            stop_reason = "end_turn"
+            parsed_output = llm.Extracted(baujahr=2014, kraft_kn=800, hubzahl_max=1200)
+
+        return R()
+
+
+class _FakeClient:
+    messages = _FakeMessages()
+
+
+def test_llm_enrich_fills_only_missing_fields():
+    lst = _classified(titel="Spritzgießmaschine Engel victory", kategorie="Spritzgießmaschine",
+                      baujahr=2012)
+    assert lst.passung == profiles.PRUEFEN
+    n, err = llm.enrich([lst], "m", 5, client=_FakeClient())
+    assert (n, err) == (1, "")
+    assert (lst.baujahr, lst.kraft_kn, lst.hubzahl_max, lst.llm_ergaenzt) == (2012, 800, 1200, True)
+    profiles.reassess(lst, CFG)
+    assert lst.passung == profiles.PASST
+
+
+def test_hersteller_pflicht_filters_other_brands():
+    bender = _listing(titel="Stanz- Biegeautomat Salvagnini P2L-2120", kategorie="Stanz- Biegeautomat",
+                      hersteller="Salvagnini")
+    assert not profiles.classify(bender, CFG)
+    bihler = _listing(titel="Stanz- Biegeautomat BIHLER GRM 80", kategorie="Stanz- Biegeautomat",
+                      hersteller="BIHLER", baujahr=1999)
+    assert profiles.classify(bihler, CFG) and bihler.profil_id == "stanzbiegeautomat"

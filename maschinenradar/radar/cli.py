@@ -6,7 +6,9 @@ import datetime as dt
 import sys
 from pathlib import Path
 
-from . import profiles, report
+import os
+
+from . import llm, outreach, profiles, report, scoring
 from .http import FetchError, Fetcher
 from .models import Listing, SourceLog
 from .sources import LISTING_SOURCES, netbid
@@ -47,6 +49,16 @@ def run(args: argparse.Namespace) -> int:
 
     listings = [l for l in found.values() if profiles.classify(l, cfg)]
     verworfen = len(found) - len(listings)
+    if args.llm:
+        if not os.environ.get("ANTHROPIC_API_KEY"):
+            print("[llm] übersprungen: ANTHROPIC_API_KEY ist nicht gesetzt")
+        else:
+            offen = [l for l in listings if l.passung == profiles.PRUEFEN]
+            n, err = llm.enrich(offen, cfg.llm_modell, args.llm_max)
+            for l in offen:
+                profiles.reassess(l, cfg)
+            print(f"[llm] {n} von {min(len(offen), args.llm_max)} Angeboten ergänzt" + (f" ({err})" if err else ""))
+            logs.append(SourceLog("llm", cfg.llm_modell, "", roh=n, fehler=err))
     profiles.mark_duplicates(listings)
 
     auctions = []
@@ -65,11 +77,18 @@ def run(args: argparse.Namespace) -> int:
     store.log_run(run_id, len(listings), neu, fetcher.requests_made)
 
     xlsx = out / f"maschinenradar_{run_id[:10]}.xlsx"
-    report.write(xlsx, cfg, listings, auctions, logs, first_seen, run_id, verworfen)
+    actions = scoring.rank(listings, auctions, cfg, cfg.aktionen_je_maschinenart)
+    drafts = [
+        outreach.draft(a.listing, cfg)
+        for a in actions
+        if a.listing and a.aktion in (scoring.A_PREIS, scoring.A_DATEN)
+    ]
+    report.write(xlsx, cfg, listings, auctions, logs, first_seen, run_id, verworfen, actions, drafts)
 
     print(f"\n{len(listings)} Angebote ({neu} neu), {verworfen} verworfen, "
           f"{store.not_seen_in(run_id)} frühere Angebote nicht mehr gefunden, "
           f"{fetcher.requests_made} Abrufe")
+    print(f"Aktionsliste: {len(actions)} Einträge, {len(drafts)} Anfrage-Entwürfe")
     print(f"Excel: {xlsx}")
     return 1 if logs and all(g.fehler for g in logs) else 0
 
@@ -83,6 +102,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--max-seiten", type=int, default=6, help="Ergebnisseiten je Suchanfrage")
     ap.add_argument("--pause", type=float, default=3.0, help="Sekunden zwischen Abrufen je Host")
     ap.add_argument("--cache-stunden", type=float, default=0, help="Seiten so lange aus dem Cache lesen")
+    ap.add_argument("--llm", action="store_true", help="Fehlende Felder per Claude ergänzen (braucht ANTHROPIC_API_KEY)")
+    ap.add_argument("--llm-max", type=int, default=50, help="Höchstzahl Angebote für die LLM-Extraktion")
     return run(ap.parse_args(argv))
 
 

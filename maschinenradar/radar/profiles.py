@@ -24,11 +24,16 @@ class Profile:
     ausschluss: list[str] = field(default_factory=list)
     spez: dict = field(default_factory=dict)
     quellen: dict[str, list[str]] = field(default_factory=dict)
+    hersteller_pflicht: bool = False  # nur Angebote der gelisteten Hersteller zulassen
 
     def matches(self, lst: Listing) -> bool:
         head = f"{lst.kategorie} {lst.titel}".lower()
         if any(a.lower() in head for a in self.ausschluss):
             return False
+        if self.hersteller_pflicht:
+            name = f"{lst.hersteller} {lst.titel}"
+            if not any(re.search(r"(?<!\w)" + re.escape(h) + r"(?!\w)", name, re.I) for h in self.hersteller):
+                return False
         return any(b.lower() in head for b in self.begriffe)
 
     def assess(self, lst: Listing) -> tuple[str, str]:
@@ -58,6 +63,9 @@ class Config:
     profiles: list[Profile]
     wechselkurse: dict[str, float]
     auktions_begriffe: list[str]
+    anfrage: dict = field(default_factory=dict)
+    llm_modell: str = "claude-opus-5-5"
+    aktionen_je_maschinenart: int = 15
 
     @property
     def brands(self) -> list[str]:
@@ -74,6 +82,9 @@ def load(path: Path) -> Config:
         profiles=profiles,
         wechselkurse=raw.get("wechselkurse", {"EUR": 1.0}),
         auktions_begriffe=(raw.get("auktionen") or {}).get("begriffe", []),
+        anfrage=raw.get("anfrage") or {},
+        llm_modell=(raw.get("llm") or {}).get("modell", "claude-opus-5-5"),
+        aktionen_je_maschinenart=(raw.get("aktionsliste") or {}).get("je_maschinenart", 15),
     )
 
 
@@ -92,6 +103,12 @@ def classify(lst: Listing, cfg: Config) -> bool:
     lst.profil_id = prof.id
     lst.passung, lst.passung_grund = prof.assess(lst)
     return True
+
+
+def reassess(lst: Listing, cfg: Config) -> None:
+    prof = cfg.profile(lst.profil_id)
+    if prof:
+        lst.passung, lst.passung_grund = prof.assess(lst)
 
 
 def _norm(s: str) -> str:

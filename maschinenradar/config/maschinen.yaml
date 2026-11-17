@@ -6,6 +6,18 @@ wechselkurse:
   EUR: 1.0
   USD: 0.90
 
+# Neutrale Absenderangaben für die Anfrage-Entwürfe (werden nicht versendet).
+anfrage:
+  absender: "[Name]"
+  firma: "[neutrale Firma]"
+  email: "[E-Mail-Adresse]"
+
+# Umfang der Aktionsliste und Modell für die optionale LLM-Extraktion (--llm).
+aktionsliste:
+  je_maschinenart: 15
+llm:
+  modell: claude-opus-5-5
+
 maschinen:
   - id: stanzautomat
     name: Hochleistungs-Stanzautomat
@@ -28,9 +40,10 @@ maschinen:
     gruppe: Stanzen
     spez:
       baujahr_min: 1995
-    hersteller: [Bihler, Finzer, Otto Bihler]
-    begriffe: [stanzbiegeautomat, stanz- & biegeautomat, stanz- und biegeautomat, biegeautomat, stanzautomat, multislide, four slide, fourslide]
-    ausschluss: [werkzeug, ersatzteil, haspel]
+    hersteller: [Bihler, Finzer, Otto Bihler, Wafios, Schmale, Meyer Roth & Pastor, MRP, Nilson]
+    hersteller_pflicht: true   # Kategorie enthält auch Biegezentren für Blech
+    begriffe: [stanzbiegeautomat, stanz- & biegeautomat, stanz- und biegeautomat, stanz- biegeautomat, biegeautomat, stanzautomat, multislide, four slide, fourslide]
+    ausschluss: [werkzeug, ersatzteil, haspel, steuerkarte, steuerung]
     quellen:
       maschinensucher: [/Stanz-Biegeautomaten/ci-1053, bihler]
       resale: [bihler-stanzautomaten]
@@ -40,7 +53,8 @@ maschinen:
     gruppe: Drehen
     spez:
       baujahr_min: 2008
-    hersteller: [Citizen, Star, Tornos, Tsugami, Traub, Hanwha, Nomura, Manurhin]
+    hersteller: [Citizen, Star, Tornos, Tsugami, Traub, Hanwha, Nomura, Manurhin, Maier, Index, DMG, Gildemeister, Swistek, Nexturn, Polygim, KSI, Goodway, Ganesh, Hardinge, Miyano, Doosan]
+    hersteller_pflicht: true   # Kategorie enthält auch Langbett-Drehmaschinen
     begriffe: [langdrehautomat, langdreher, swiss type, swiss-type, swiss automatic, swiss lathe, swiss turn, sliding head]
     ausschluss: [stangenlader, lademagazin, bar feeder only, spannzange]
     quellen:
@@ -76,4 +90,4 @@ maschinen:
 
 # NetBid: Auktionskalender wird nach diesen Begriffen durchsucht (Titel der Auktion).
 auktionen:
-  begriffe: [punching, stamping, press, injection mould, injection mold, plastic, lathe, turning, metalworking, metal working, machine tool, cnc, connector, electrical engineering]
+  begriffe: [punching, stamping, injection mould, injection mold, plastics processing, lathe, turning, metalworking, metal working, connector, electrical engineering]

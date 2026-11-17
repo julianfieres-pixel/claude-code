@@ -56,11 +56,53 @@ def write(
     first_seen: dict[tuple[str, str], str],
     run: str,
     verworfen: int,
+    actions: list | None = None,
+    drafts: list | None = None,
 ) -> None:
     wb = Workbook()
     wb.remove(wb.active)
     order = {p.id: i for i, p in enumerate(cfg.profiles)}
     names = {p.id: p for p in cfg.profiles}
+
+    # -- Aktionsliste ---------------------------------------------------
+    ws = _sheet(
+        wb,
+        "Aktionsliste",
+        ["Rang", "Aktion", "Punkte", "Gruppe", "Maschinenart", "Hersteller", "Modell", "Baujahr",
+         "Kraft kN", "Preis EUR (ca.)", "Land", "Ort", "Termin", "Begründung", "Quelle", "Link"],
+        [6, 42, 8, 11, 28, 16, 30, 9, 9, 13, 14, 24, 22, 60, 15, 10],
+    )
+    for i, a in enumerate(actions or [], 1):
+        if a.auction:
+            au = a.auction
+            ws.append([i, a.aktion, a.punkte, "Auktion", au.art, "", au.titel, None, None, None,
+                       "", au.ort, au.termin, a.grund, au.quelle, "öffnen"])
+            url = au.url
+        else:
+            x = a.listing
+            p = names[x.profil_id]
+            ws.append([i, a.aktion, a.punkte, p.gruppe, p.name, x.hersteller, x.modell, x.baujahr,
+                       x.kraft_kn, eur(x, cfg), x.land, x.ort, "", a.grund, x.quelle, "öffnen"])
+            url = x.url
+            ws.cell(row=ws.max_row, column=10).number_format = "#,##0"
+        _link(ws.cell(row=ws.max_row, column=16), url)
+    _finish(ws)
+
+    # -- Anfragen -------------------------------------------------------
+    ws = _sheet(
+        wb,
+        "Anfragen",
+        ["Maschinenart", "Hersteller", "Modell", "Baujahr", "Land", "Sprache", "Offene Punkte",
+         "Betreff", "Text (Entwurf, nicht versendet)", "Quelle", "Link"],
+        [28, 16, 30, 9, 14, 9, 34, 46, 90, 15, 10],
+    )
+    for d in drafts or []:
+        x = d.listing
+        ws.append([names[x.profil_id].name, x.hersteller, x.modell, x.baujahr, x.land, d.sprache,
+                   ", ".join(d.offene_punkte), d.betreff, d.text, x.quelle, "öffnen"])
+        ws.cell(row=ws.max_row, column=9).alignment = Alignment(wrap_text=True, vertical="top")
+        _link(ws.cell(row=ws.max_row, column=11), x.url)
+    _finish(ws)
 
     # -- Lage -----------------------------------------------------------
     ws = _sheet(
