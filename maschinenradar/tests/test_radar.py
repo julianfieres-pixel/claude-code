@@ -23,6 +23,7 @@ CFG = profiles.load(Path(__file__).resolve().parent.parent / "config" / "maschin
         ("EUR 1.250,00", (1250.0, "EUR")),
         ("$49,500.00 USD", (49500.0, "USD")),
         ("Preisinfo", (None, "")),
+        ("1 €", (None, "")),
     ],
 )
 def test_parse_price(text, expected):
@@ -179,4 +180,7 @@ def test_mark_duplicates():
     a = _listing(quelle="a", hersteller="Index", modell="MS 22C", baujahr=2015)
     b = _listing(quelle="b", quelle_id="9", hersteller="INDEX", modell="MS22C", baujahr=2015)
     profiles.mark_duplicates([a, b])
+    c = _listing(quelle="c", quelle_id="7", modell="Index MS 22C", baujahr=2015)
+    profiles.mark_duplicates([a, b, c])
     assert a.moegliche_dublette == "" and b.moegliche_dublette == "a:1"
+    assert c.moegliche_dublette == "a:1"

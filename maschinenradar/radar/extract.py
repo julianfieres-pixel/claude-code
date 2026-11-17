@@ -45,7 +45,7 @@ def parse_price(text: str | None) -> tuple[float | None, str]:
     if dec:
         num = num[: dec.start()]
     val = parse_int(num)
-    if not val:
+    if not val or val < 100:  # Platzhalter wie "1 EUR" sind kein Preis
         return None, ""
     return float(val), cur
 

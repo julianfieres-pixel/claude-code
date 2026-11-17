@@ -102,9 +102,12 @@ def mark_duplicates(listings: list[Listing]) -> None:
     """Gleiche Maschine auf mehreren Portalen: Hersteller + Modell + Baujahr identisch."""
     seen: dict[tuple, Listing] = {}
     for lst in listings:
-        if not (lst.hersteller and lst.modell and lst.baujahr):
+        if not (lst.modell and lst.baujahr):
             continue
-        key = (_norm(lst.hersteller), _norm(lst.modell), lst.baujahr)
+        name = _norm(lst.modell)
+        if not name.startswith(_norm(lst.hersteller)):
+            name = _norm(lst.hersteller) + name
+        key = (name, lst.baujahr)
         first = seen.setdefault(key, lst)
         if first is not lst and first.quelle != lst.quelle:
             lst.moegliche_dublette = f"{first.quelle}:{first.quelle_id}"
