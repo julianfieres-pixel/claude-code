@@ -1,0 +1,79 @@
+# Maschinenliste und Suchprofile (Beispiel-Spezifikation fuer die Steckerfertigung).
+# Diese Datei ist der Input des Radars: Zeilen anpassen, ergaenzen oder loeschen.
+
+# Naeherungskurse fuer die Spalte "Preis EUR (ca.)" - bitte vor Nutzung anpassen.
+wechselkurse:
+  EUR: 1.0
+  USD: 0.90
+
+maschinen:
+  - id: stanzautomat
+    name: Hochleistungs-Stanzautomat
+    gruppe: Stanzen
+    spez:
+      baujahr_min: 2000
+      kraft_kn: [150, 800]
+    hersteller: [Bruderer, Yamada Dobby, Kyori, Aida, Haulick, Raster, Minster, Schuler]
+    begriffe: [stanzautomat, schnellläufer, schnelllaeufer, high speed press, high speed and automatic, hochleistungsstanz, stanzpresse]
+    ausschluss: [vorschub, haspel, richtmaschine, werkzeug, ersatzteil, feeder only]
+    # Je Quelle: Kategorie-/Stichwortseiten. Maschinensucher: Pfad (/Name/ci-123) oder
+    # Stichwort; Resale: Stichwort-Slug; Surplus Record: Kategorie[/Hersteller].
+    quellen:
+      maschinensucher: [/Stanzautomaten/ci-1194, bruderer]
+      resale: [bruderer-stanzautomat, stanzautomat]
+      surplusrecord: [high-speed-and-automatic-presses]
+
+  - id: stanzbiegeautomat
+    name: Stanzbiegeautomat
+    gruppe: Stanzen
+    spez:
+      baujahr_min: 1995
+    hersteller: [Bihler, Finzer, Otto Bihler]
+    begriffe: [stanzbiegeautomat, stanz- & biegeautomat, stanz- und biegeautomat, biegeautomat, stanzautomat, multislide, four slide, fourslide]
+    ausschluss: [werkzeug, ersatzteil, haspel]
+    quellen:
+      maschinensucher: [/Stanz-Biegeautomaten/ci-1053, bihler]
+      resale: [bihler-stanzautomaten]
+
+  - id: langdrehautomat
+    name: CNC-Langdrehautomat
+    gruppe: Drehen
+    spez:
+      baujahr_min: 2008
+    hersteller: [Citizen, Star, Tornos, Tsugami, Traub, Hanwha, Nomura, Manurhin]
+    begriffe: [langdrehautomat, langdreher, swiss type, swiss-type, swiss automatic, swiss lathe, swiss turn, sliding head]
+    ausschluss: [stangenlader, lademagazin, bar feeder only, spannzange]
+    quellen:
+      maschinensucher: [/Langdrehautomaten/ci-1135]
+      resale: [langdrehautomat, citizen-langdrehautomaten]
+      surplusrecord: [swiss-type-and-lathe-cnc-automatic-screw-machines]
+
+  - id: mehrspindler
+    name: CNC-Mehrspindeldrehautomat
+    gruppe: Drehen
+    spez:
+      baujahr_min: 2005
+    hersteller: [Index, Tornos, Schütte, Schuette, Gildemeister, Wickman, Mori-Say]
+    begriffe: [mehrspindel, multi-spindle, multispindle, multi spindle, multiswiss]
+    ausschluss: [stangenlader, lademagazin, spannzange]
+    quellen:
+      maschinensucher: [/Mehrspindler/ci-1137]
+      resale: [mehrspindeldrehautomat]
+
+  - id: spritzgiessmaschine
+    name: Spritzgießmaschine 35-160 t
+    gruppe: Spritzguss
+    spez:
+      baujahr_min: 2010
+      kraft_kn: [350, 1600]
+    hersteller: [Arburg, Engel, Fanuc, Sumitomo, Demag, KraussMaffei, Krauss Maffei, Wittmann Battenfeld, Battenfeld, Nissei, Boy, Toyo, JSW]
+    begriffe: [spritzgie, spritzguss, injection mold, injection mould, allrounder, roboshot]
+    ausschluss: [werkzeug, temperiergerät, trockner, granulat, förderband, ersatzteil, schnecke]
+    quellen:
+      maschinensucher: [/Schliesskraft-250-999-kN/ci-1214, /Schliesskraft-1000-4999-kN/ci-1215]
+      resale: [spritzgiessmaschine]
+      surplusrecord: [screw-type-injection-molding-machine/arburg, screw-type-injection-molding-machine/fanuc, screw-type-injection-molding-machine/engel]
+
+# NetBid: Auktionskalender wird nach diesen Begriffen durchsucht (Titel der Auktion).
+auktionen:
+  begriffe: [punching, stamping, press, injection mould, injection mold, plastic, lathe, turning, metalworking, metal working, machine tool, cnc, connector, electrical engineering]
