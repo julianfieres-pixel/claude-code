@@ -91,3 +91,24 @@ maschinen:
 # NetBid: Auktionskalender wird nach diesen Begriffen durchsucht (Titel der Auktion).
 auktionen:
   begriffe: [punching, stamping, injection mould, injection mold, plastics processing, lathe, turning, metalworking, metal working, connector, electrical engineering]
+
+# Insolvenz-Monitor (Quelle: Meldungen der Insolvenzkanzleien bei INDat).
+insolvenzen:
+  monate: 18            # Meldungen der letzten n Monate
+  seiten_aktuell: 3     # je 100 jüngste Meldungen
+  min_prozent: 30       # Mindest-Wahrscheinlichkeit für die Aufnahme
+  suchbegriffe: [Stanztechnik, Stanzteile, Umformtechnik, Spritzguss, Kunststofftechnik, Drehteile, Zerspanung, Steckverbinder, Metallverarbeitung]
+  # Stichworte, aus denen die Wahrscheinlichkeit geschätzt wird (stark 55 %, mittel 30 %, schwach 12 %).
+  indizien:
+    Stanzen:
+      stark: [stanztechnik, stanzteil, stanzbiege, stanzerei, feinschneid, stanz- und]
+      mittel: [umformtechnik, blechumform, metallumform, kontaktteile, pressteile, stanz]
+    Drehen:
+      stark: [drehteil, dreherei, langdreh, drehautomat]
+      mittel: [zerspan, cnc-bearbeitung, präzisionsteile, cnc-dreh]
+    Spritzguss:
+      stark: [spritzguss, spritzgieß, spritzgiess]
+      mittel: [kunststofftechnik, kunststoffteile, kunststoffverarbeit, kunststoffkomponenten]
+    allgemein:
+      stark: [steckverbinder, steckverbindung, kontaktsystem]
+      schwach: [automobilzulieferer, metallverarbeit, elektrotechnik, zulieferer]

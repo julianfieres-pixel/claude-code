@@ -7,6 +7,7 @@ from collections import Counter
 from pathlib import Path
 from statistics import median
 
+from . import insolvency
 from .models import Auction, Listing, SourceLog
 from .profiles import AUSSERHALB, PASST, PRUEFEN, RANK, Config
 from .report import eur
@@ -25,7 +26,8 @@ def _hist(years: list[int]) -> list[list[int]]:
 
 
 def build(cfg: Config, listings: list[Listing], auctions: list[Auction], logs: list[SourceLog],
-          first_seen: dict, run: str, actions: list, drafts: list) -> dict:
+          first_seen: dict, run: str, actions: list, drafts: list,
+          insolvenzen: list | None = None) -> dict:
     index = {p.id: i for i, p in enumerate(cfg.profiles)}
     profiles = []
     for p in cfg.profiles:
@@ -63,7 +65,14 @@ def build(cfg: Config, listings: list[Listing], auctions: list[Auction], logs: l
 
     acts = []
     for i, a in enumerate(actions, 1):
-        if a.auction:
+        if a.insolvenz:
+            e = a.insolvenz
+            acts.append({"r": i, "a": a.aktion, "pt": a.punkte, "p": -2, "h": "",
+                         "m": e.firma or e.titel, "art": e.status,
+                         "o": " · ".join(x for x in (e.verwalter, e.kanzlei) if x),
+                         "t": e.datum_verfahren or e.datum_meldung, "g": a.grund, "q": "indat",
+                         "u": e.url})
+        elif a.auction:
             au = a.auction
             acts.append({"r": i, "a": a.aktion, "pt": a.punkte, "p": -1, "m": au.titel, "h": "",
                          "art": au.art, "o": au.ort, "t": au.termin, "g": a.grund, "q": au.quelle,
@@ -91,8 +100,14 @@ def build(cfg: Config, listings: list[Listing], auctions: list[Auction], logs: l
             "nr": a.quelle_id, "art": a.art, "titel": a.titel, "o": a.ort, "t": a.termin,
             "pos": a.positionen, "treffer": a.treffer, "u": a.url,
         } for a in sorted(auctions, key=lambda a: (not a.treffer, a.quelle_id))],
+        "insolvenzen": [{
+            "f": e.firma or e.titel, "w": e.wahrscheinlichkeit, "gr": e.gruppen, "st": e.status,
+            "vw": e.verwertung, "dv": e.datum_verfahren, "dm": e.datum_meldung, "v": e.verwalter,
+            "k": e.kanzlei, "kt": e.kontakt, "ind": e.indizien, "titel": e.titel, "n": e.meldungen,
+            "u": e.url, "anfrage": insolvency.anfrage(e, cfg.anfrage),
+        } for e in insolvenzen or []],
         "quellen": [{
-            "q": q, "n": sum(x.quelle == q for x in listings),
+            "q": q, "n": sum(x.quelle == q for x in listings) or (len(insolvenzen or []) if q == "indat" else 0),
             "gekappt": sum(1 for g in logs if g.quelle == q and g.hinweis),
             "fehler": sum(1 for g in logs if g.quelle == q and g.fehler),
         } for q in dict.fromkeys(g.quelle for g in logs) if q not in ("llm",)],

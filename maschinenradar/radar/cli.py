@@ -8,7 +8,7 @@ from pathlib import Path
 
 import os
 
-from . import dashboard, llm, outreach, profiles, report, scoring
+from . import dashboard, insolvency, llm, outreach, profiles, report, scoring
 from .http import FetchError, Fetcher
 from .models import Listing, SourceLog
 from .sources import LISTING_SOURCES, netbid
@@ -19,7 +19,7 @@ def run(args: argparse.Namespace) -> int:
     cfg = profiles.load(args.config)
     out = Path(args.out)
     fetcher = Fetcher(delay=args.pause, cache_dir=out / ".cache", cache_hours=args.cache_stunden)
-    wanted = set(args.quellen.split(",")) if args.quellen else set(LISTING_SOURCES) | {"netbid"}
+    wanted = set(args.quellen.split(",")) if args.quellen else set(LISTING_SOURCES) | {"netbid", "indat"}
     run_id = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
 
     found: dict[tuple[str, str], Listing] = {}
@@ -71,25 +71,33 @@ def run(args: argparse.Namespace) -> int:
         print(log.fehler or f"{log.roh} Auktionen, {sum(bool(a.treffer) for a in auctions)} mit Treffer")
         logs.append(log)
 
+    insolvenzen = []
+    if "indat" in wanted and cfg.insolvenzen:
+        print("[indat] Insolvenzmeldungen ...", end=" ", flush=True)
+        insolvenzen, ilogs = insolvency.fetch(fetcher, cfg.insolvenzen)
+        logs.extend(ilogs)
+        fehler = sum(bool(g.fehler) for g in ilogs)
+        print(f"{len(insolvenzen)} relevante Firmen" + (f", {fehler} Abrufe mit Fehler" if fehler else ""))
+
     store = Store(out / "radar.sqlite")
     first_seen = store.upsert(listings, run_id)
     neu = sum(v == run_id for v in first_seen.values())
     store.log_run(run_id, len(listings), neu, fetcher.requests_made)
 
     xlsx = out / f"maschinenradar_{run_id[:10]}.xlsx"
-    actions = scoring.rank(listings, auctions, cfg, cfg.aktionen_je_maschinenart)
+    actions = scoring.rank(listings, auctions, cfg, cfg.aktionen_je_maschinenart, insolvenzen)
     drafts = [
         outreach.draft(a.listing, cfg)
         for a in actions
         if a.listing and a.aktion in (scoring.A_PREIS, scoring.A_DATEN)
     ]
-    report.write(xlsx, cfg, listings, auctions, logs, first_seen, run_id, verworfen, actions, drafts)
+    report.write(xlsx, cfg, listings, auctions, logs, first_seen, run_id, verworfen, actions, drafts, insolvenzen)
 
     print(f"\n{len(listings)} Angebote ({neu} neu), {verworfen} verworfen, "
           f"{store.not_seen_in(run_id)} frühere Angebote nicht mehr gefunden, "
           f"{fetcher.requests_made} Abrufe")
-    print(f"Aktionsliste: {len(actions)} Einträge, {len(drafts)} Anfrage-Entwürfe")
-    data = dashboard.build(cfg, listings, auctions, logs, first_seen, run_id, actions, drafts)
+    print(f"Aktionsliste: {len(actions)} Einträge, {len(drafts)} Anfrage-Entwürfe, {len(insolvenzen)} Insolvenzen")
+    data = dashboard.build(cfg, listings, auctions, logs, first_seen, run_id, actions, drafts, insolvenzen)
     dashboard.write(out / "dashboard.html", data)
     if args.dashboard_fragment:
         dashboard.write(Path(args.dashboard_fragment), data, standalone=False)

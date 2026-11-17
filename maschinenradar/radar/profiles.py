@@ -66,6 +66,7 @@ class Config:
     anfrage: dict = field(default_factory=dict)
     llm_modell: str = "claude-opus-5-5"
     aktionen_je_maschinenart: int = 15
+    insolvenzen: dict = field(default_factory=dict)
 
     @property
     def brands(self) -> list[str]:
@@ -85,6 +86,7 @@ def load(path: Path) -> Config:
         anfrage=raw.get("anfrage") or {},
         llm_modell=(raw.get("llm") or {}).get("modell", "claude-opus-5-5"),
         aktionen_je_maschinenart=(raw.get("aktionsliste") or {}).get("je_maschinenart", 15),
+        insolvenzen=raw.get("insolvenzen") or {},
     )
 
 

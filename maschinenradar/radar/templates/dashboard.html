@@ -129,7 +129,7 @@ tr.detail { border-top: 0; }
 /* Anfragen und Auktionen */
 details { border-top: 1px solid var(--line); }
 details:first-child { border-top: 0; }
-summary { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) 44px; gap: 4px 16px; padding: 10px 14px; cursor: pointer; align-items: center; list-style: none; }
+summary { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) 56px; gap: 4px 16px; padding: 10px 14px; cursor: pointer; align-items: center; list-style: none; }
 summary::-webkit-details-marker { display: none; }
 summary:hover { background: var(--surface-2); }
 .mail { padding: 4px 14px 14px; display: grid; gap: 8px; }
@@ -147,7 +147,8 @@ summary:hover { background: var(--surface-2); }
   .act .why, .act .score { grid-column: 2 / -1; }
   .act .open { grid-column: 3; grid-row: 1; justify-self: end; }
   summary { grid-template-columns: minmax(0, 1fr) 40px; }
-  summary .offen { grid-column: 1; }
+  summary .offen, summary .second { grid-column: 1; }
+  summary .pill { white-space: normal; }
   .auc { grid-template-columns: minmax(0, 1fr) 64px; }
   .auc .when, .auc .where { grid-column: 1; }
   .auc .open { grid-column: 2; grid-row: 1; justify-self: end; }
@@ -204,6 +205,16 @@ summary:hover { background: var(--surface-2); }
     <div class="list" id="anfragen"></div>
   </section>
 
+  <section class="panel" id="v-insolvenzen" role="tabpanel" hidden>
+    <p class="muted">Firmen in Insolvenz, die nach den Stichworten der Meldung wahrscheinlich solche Maschinen einsetzen. Quelle sind Meldungen der Insolvenzkanzleien; alle Felder sind automatisch aus dem Text gelesen und vor einer Ansprache zu prüfen.</p>
+    <div class="filters">
+      <label class="chk"><input type="checkbox" id="f-ins" checked> nur wenn Maschinen noch auf den Markt kommen können</label>
+      <select id="f-insg" aria-label="Maschinengruppe"><option value="">Gruppe: alle</option><option>Stanzen</option><option>Drehen</option><option>Spritzguss</option></select>
+      <span class="count" id="inscount"></span>
+    </div>
+    <div class="list" id="insolvenzen"></div>
+  </section>
+
   <section class="panel" id="v-auktionen" role="tabpanel" hidden>
     <div class="filters"><label class="chk"><input type="checkbox" id="f-auc" checked> nur Auktionen mit Treffer im Titel</label><span class="count" id="auccount"></span></div>
     <div class="list" id="auktionen"></div>
@@ -253,7 +264,8 @@ summary:hover { background: var(--surface-2); }
   }).join("");
 
   /* Ansichten */
-  var VIEWS = [["aktionen", "Aktionsliste", D.aktionen.length], ["angebote", "Angebote", total], ["anfragen", "Anfragen", D.anfragen.length], ["auktionen", "Auktionen", D.auktionen.filter(function (a) { return a.treffer.length; }).length]];
+  D.insolvenzen = D.insolvenzen || [];
+  var VIEWS = [["aktionen", "Aktionsliste", D.aktionen.length], ["angebote", "Angebote", total], ["insolvenzen", "Insolvenzen", D.insolvenzen.length], ["anfragen", "Anfragen", D.anfragen.length], ["auktionen", "Auktionen", D.auktionen.filter(function (a) { return a.treffer.length; }).length]];
   $("tabs").innerHTML = VIEWS.map(function (v) { return '<button type="button" role="tab" id="t-' + v[0] + '" data-v="' + v[0] + '">' + v[1] + '<span class="cnt">' + num(v[2]) + "</span></button>"; }).join("");
   function show(v) {
     if (!VIEWS.some(function (x) { return x[0] === v; })) v = "aktionen";
@@ -271,15 +283,15 @@ summary:hover { background: var(--surface-2); }
   var actKinds = [];
   D.aktionen.forEach(function (a) { if (actKinds.indexOf(a.a) < 0) actKinds.push(a.a); });
   var actFilter = "";
-  function actPill(a) { return a.p < 0 ? "due" : (a.a.indexOf("Angebot") === 0 ? "s0" : a.a.indexOf("Preis") === 0 ? "neutral" : "s1"); }
+  function actPill(a) { return a.p === -2 ? "s1" : a.p < 0 ? "due" : (a.a.indexOf("Angebot") === 0 ? "s0" : a.a.indexOf("Preis") === 0 ? "neutral" : "s1"); }
   function renderActs() {
     var items = D.aktionen.filter(function (a) { return !actFilter || a.a === actFilter; });
     $("actcount").textContent = items.length + " von " + D.aktionen.length + " Aktionen";
     var groups = [], by = {};
     items.forEach(function (a) { var k = a.p; if (!(k in by)) { by[k] = []; groups.push(k); } by[k].push(a); });
     $("aktionen").innerHTML = groups.map(function (k) {
-      var title = k < 0 ? "Auktionen mit Frist" : D.profile[k].name;
-      var sub = k < 0 ? "zuerst prüfen" : D.profile[k].spez;
+      var title = k === -2 ? "Insolvenzen" : k < 0 ? "Auktionen mit Frist" : D.profile[k].name;
+      var sub = k === -2 ? "Maschinen vor dem Inserat sichern" : k < 0 ? "zuerst prüfen" : D.profile[k].spez;
       return '<div class="group"><h2>' + esc(title) + "<span>" + esc(sub) + '</span></h2><div class="list">' + by[k].map(function (a) {
         var meta = a.p < 0
           ? [a.art, a.o, a.t].filter(Boolean).join(" · ")
@@ -287,7 +299,7 @@ summary:hover { background: var(--surface-2); }
         return '<div class="act"><div class="rank num">' + a.r + '</div><div><div class="title">' + esc(name(a)) + '</div><div class="meta">' + esc(meta) + "</div></div>" +
           '<div class="why"><span class="pill ' + actPill(a) + '">' + esc(a.a) + '</span><div class="meta">' + esc(a.g) + "</div></div>" +
           '<div class="score" title="Punkte von 100"><span class="num">' + a.pt + '</span><span class="track"><i style="width:' + a.pt + '%"></i></span></div>' +
-          link(a.u, a.p < 0 ? "Auktion" : "Inserat") + "</div>";
+          link(a.u, a.p === -2 ? "Meldung" : a.p < 0 ? "Auktion" : "Inserat") + "</div>";
       }).join("") + "</div></div>";
     }).join("") || '<div class="list"><div class="empty">Keine Aktionen für diesen Filter.</div></div>';
   }
@@ -373,6 +385,32 @@ summary:hover { background: var(--surface-2); }
     function fallback() { var r = document.createRange(); r.selectNodeContents($("mail-" + b.dataset.i)); var s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = "Text markiert"; }
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { b.textContent = "Kopiert"; }, fallback); else fallback();
   });
+
+  /* Insolvenzen */
+  var VW = { hoch: "s0", mittel: "s1", gering: "s2", unklar: "s2" };
+  function renderIns() {
+    var only = $("f-ins").checked, g = $("f-insg").value;
+    var items = D.insolvenzen.filter(function (e) { return (!only || e.vw !== "gering") && (!g || e.gr.indexOf(g) >= 0); });
+    $("inscount").textContent = items.length + " von " + D.insolvenzen.length + " Firmen";
+    $("insolvenzen").innerHTML = items.map(function (e) {
+      var i = D.insolvenzen.indexOf(e);
+      var admin = [e.v, e.k].filter(Boolean).join(" · ") || "Verwalter in der Meldung nicht erkannt";
+      return "<details><summary><div><b>" + esc(e.f) + '</b><div class="muted" style="font-size:13px">' + esc([e.gr.join(", "), "Meldung " + e.dm, e.dv ? "Verfahren " + e.dv : ""].filter(Boolean).join(" · ")) + "</div></div>" +
+        '<div class="second"><span class="pill ' + VW[e.vw] + '">' + esc(e.st) + '</span><div class="muted" style="font-size:13px;margin-top:3px">' + esc(admin) + "</div></div>" +
+        '<span class="num" title="Geschätzte Wahrscheinlichkeit, dass solche Maschinen eingesetzt werden">' + e.w + " %</span></summary>" +
+        '<div class="mail"><div class="muted" style="font-size:13px"><b>' + esc(e.titel) + "</b><br>Indizien: " + esc(e.ind.join(", ")) + "<br>Chance auf Maschinenverwertung: " + esc(e.vw) + (e.kt ? "<br>Kontakt laut Meldung (kann Pressestelle oder Berater sein): " + esc(e.kt) : "") + "</div>" +
+        '<div class="mailbar"><button type="button" class="copy" data-i="' + i + '">Anfrage kopieren</button>' + link(e.u, "Meldung") + '</div><pre id="ins-' + i + '">' + esc(e.anfrage) + "</pre></div></details>";
+    }).join("") || '<div class="empty">Keine Insolvenz passt zu diesen Filtern.</div>';
+  }
+  $("f-ins").addEventListener("input", renderIns);
+  $("f-insg").addEventListener("input", renderIns);
+  $("insolvenzen").addEventListener("click", function (ev) {
+    var b = ev.target.closest("button.copy"); if (!b) return;
+    var text = D.insolvenzen[+b.dataset.i].anfrage;
+    function fallback() { var r = document.createRange(); r.selectNodeContents($("ins-" + b.dataset.i)); var s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = "Text markiert"; }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { b.textContent = "Kopiert"; }, fallback); else fallback();
+  });
+  renderIns();
 
   /* Auktionen */
   function renderAuctions() {

@@ -17,6 +17,7 @@ A_VERHANDELN = "Angebot einholen und Besichtigung vereinbaren"
 A_PREIS = "Preis und Verfügbarkeit anfragen"
 A_DATEN = "Fehlende Daten anfragen"
 A_AUKTION = "Auktion prüfen (Lose und Termin)"
+A_INSOLVENZ = "Insolvenzverwaltung ansprechen (Maschinenverwertung)"
 
 
 @dataclass
@@ -26,6 +27,7 @@ class Action:
     grund: str
     listing: Listing | None = None
     auction: Auction | None = None
+    insolvenz: object | None = None
 
 
 def score(lst: Listing, cfg: Config) -> Action | None:
@@ -66,13 +68,30 @@ def score(lst: Listing, cfg: Config) -> Action | None:
     return Action(min(punkte, 100), aktion, "; ".join(teile), listing=lst)
 
 
-def rank(listings: list[Listing], auctions: list[Auction], cfg: Config, per_profile: int) -> list[Action]:
-    """Aktionsliste: Auktionen mit Treffer zuerst (Fristen), dann die besten Angebote je Maschinenart."""
+VERWERTUNG_PUNKTE = {"hoch": 30, "mittel": 15, "gering": 0, "unklar": 5}
+
+
+def score_insolvenz(e) -> Action | None:
+    """Insolvenzen: nur wenn Maschinen noch auf den Markt kommen können (nicht bereits verkauft)."""
+    if e.verwertung == "gering" or e.wahrscheinlichkeit < 50:
+        return None
+    punkte = min(100, round(e.wahrscheinlichkeit * 0.7) + VERWERTUNG_PUNKTE.get(e.verwertung, 0))
+    grund = (f"{e.status}; Einsatz solcher Maschinen ca. {e.wahrscheinlichkeit} % "
+             f"({', '.join(e.indizien[:4])}); Meldung vom {e.datum_meldung}")
+    return Action(punkte, A_INSOLVENZ, grund, insolvenz=e)
+
+
+def rank(listings: list[Listing], auctions: list[Auction], cfg: Config, per_profile: int,
+         insolvenzen: list | None = None) -> list[Action]:
+    """Aktionsliste: Auktionen mit Treffer zuerst (Fristen), dann Insolvenzen, dann die besten
+    Angebote je Maschinenart."""
     out = [
         Action(100, A_AUKTION, "Treffer: " + ", ".join(a.treffer), auction=a)
         for a in auctions
         if a.treffer
     ]
+    ins = [a for a in (score_insolvenz(e) for e in insolvenzen or []) if a]
+    out.extend(sorted(ins, key=lambda a: -a.punkte))
     for prof in cfg.profiles:
         acts = [a for a in (score(l, cfg) for l in listings if l.profil_id == prof.id) if a]
         acts.sort(key=lambda a: (-a.punkte, -(a.listing.baujahr or 0)))

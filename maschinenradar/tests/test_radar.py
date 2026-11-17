@@ -279,3 +279,49 @@ def test_dashboard_render_embeds_data_safely():
     payload = re.search(r'id="radar-data">(.*?)</script>', html, re.S).group(1)
     assert json.loads(payload)["angebote"][0]["m"] == "BSTA 510</script>"
     assert not dashboard.render(data, standalone=False).startswith("<!doctype")
+
+
+# -- Insolvenz-Monitor --------------------------------------------------------
+from radar import insolvency  # noqa: E402
+
+POST = {
+    "id": 7, "date": "2026-10-29T09:00:00", "link": "https://example.org/meldung",
+    "title": {"rendered": "Muster Stanztechnik GmbH stellt Insolvenzantrag"},
+    "content": {"rendered": (
+        "<p>Die Muster Stanztechnik GmbH aus Lüdenscheid, Hersteller von Stanzteilen und "
+        "Kontaktteilen für Steckverbinder, hat am 27. Oktober 2026 Insolvenzantrag gestellt. Das "
+        "Amtsgericht Hagen bestellte Rechtsanwalt Dr. Max Beispiel von der Kanzlei Schultze &amp; Braun "
+        "zum vorläufigen Insolvenzverwalter. Der Geschäftsbetrieb läuft weiter.</p>"
+        "<p>Pressekontakt: presse@schultze-braun.example, Tel.: 07851 1234-0, www.schultze-braun.example</p>")},
+}
+
+
+def test_insolvency_analyse_extracts_fields():
+    e = insolvency.analyse(POST, CFG.insolvenzen["indizien"], 30)
+    assert e.firma == "Muster Stanztechnik GmbH"
+    assert e.status == "Antrag / vorläufiges Verfahren" and e.verwertung == "mittel"
+    assert e.verwalter == "Max Beispiel" and e.kanzlei == "Schultze & Braun"
+    assert e.datum_verfahren == "27. Oktober 2026" and e.datum_meldung == "2026-10-29"
+    assert e.wahrscheinlichkeit >= 80 and "Stanzen" in e.gruppen
+    assert "presse@schultze-braun.example" in e.kontakt and "www.schultze-braun.example" in e.kontakt
+
+
+def test_insolvency_filters_and_scoring():
+    off_topic = {**POST, "title": {"rendered": "Bäckerei Muster GmbH stellt Insolvenzantrag"},
+                 "content": {"rendered": "<p>Die Bäckerei Muster GmbH hat Insolvenzantrag gestellt.</p>"}}
+    assert insolvency.analyse(off_topic, CFG.insolvenzen["indizien"], 30) is None
+    no_insolvency = {**POST, "title": {"rendered": "Muster Stanztechnik GmbH wächst"},
+                     "content": {"rendered": "<p>Stanztechnik und Stanzteile laufen gut.</p>"}}
+    assert insolvency.analyse(no_insolvency, CFG.insolvenzen["indizien"], 30) is None
+
+    e = insolvency.analyse(POST, CFG.insolvenzen["indizien"], 30)
+    act = scoring.score_insolvenz(e)
+    assert act and act.aktion == scoring.A_INSOLVENZ
+    sold = insolvency.analyse(
+        {**POST, "id": 8, "date": "2026-11-20T09:00:00",
+         "title": {"rendered": "Investor übernimmt Muster Stanztechnik GmbH"}},
+        CFG.insolvenzen["indizien"], 30)
+    assert sold.verwertung == "gering" and scoring.score_insolvenz(sold) is None
+    merged = insolvency.merge([e, sold])
+    assert len(merged) == 1 and merged[0].status.startswith("Verkauft") and merged[0].meldungen == 2
+    assert "Muster Stanztechnik GmbH" in insolvency.anfrage(e, CFG.anfrage)

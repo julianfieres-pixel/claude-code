@@ -58,6 +58,7 @@ def write(
     verworfen: int,
     actions: list | None = None,
     drafts: list | None = None,
+    insolvenzen: list | None = None,
 ) -> None:
     wb = Workbook()
     wb.remove(wb.active)
@@ -73,7 +74,13 @@ def write(
         [6, 42, 8, 11, 28, 16, 30, 9, 9, 13, 14, 24, 22, 60, 15, 10],
     )
     for i, a in enumerate(actions or [], 1):
-        if a.auction:
+        if a.insolvenz:
+            e = a.insolvenz
+            ws.append([i, a.aktion, a.punkte, "Insolvenz", ", ".join(e.gruppen), e.kanzlei,
+                       e.firma or e.titel, None, None, None, "Deutschland", e.verwalter,
+                       e.datum_verfahren or e.datum_meldung, a.grund, "indat", "öffnen"])
+            url = e.url
+        elif a.auction:
             au = a.auction
             ws.append([i, a.aktion, a.punkte, "Auktion", au.art, "", au.titel, None, None, None,
                        "", au.ort, au.termin, a.grund, au.quelle, "öffnen"])
@@ -102,6 +109,24 @@ def write(
                    ", ".join(d.offene_punkte), d.betreff, d.text, x.quelle, "öffnen"])
         ws.cell(row=ws.max_row, column=9).alignment = Alignment(wrap_text=True, vertical="top")
         _link(ws.cell(row=ws.max_row, column=11), x.url)
+    _finish(ws)
+
+    # -- Insolvenzen ----------------------------------------------------
+    ws = _sheet(
+        wb,
+        "Insolvenzen",
+        ["Firma", "Wahrscheinlichkeit %", "Maschinengruppen", "Status", "Chance Verwertung",
+         "Datum Verfahren (lt. Meldung)", "Datum Meldung", "Insolvenzverwalter", "Kanzlei",
+         "Kontakt lt. Meldung", "Indizien", "Titel der Meldung", "Meldungen", "Link"],
+        [34, 11, 20, 28, 12, 18, 13, 26, 30, 44, 40, 60, 10, 10],
+    )
+    for e in insolvenzen or []:
+        ws.append([e.firma or "(siehe Titel)", e.wahrscheinlichkeit, ", ".join(e.gruppen), e.status,
+                   e.verwertung, e.datum_verfahren, e.datum_meldung, e.verwalter, e.kanzlei,
+                   e.kontakt, ", ".join(e.indizien), e.titel, e.meldungen, "öffnen"])
+        r = ws.max_row
+        ws.cell(row=r, column=5).fill = FILLS[PASST if e.verwertung == "hoch" else PRUEFEN if e.verwertung == "mittel" else AUSSERHALB]
+        _link(ws.cell(row=r, column=14), e.url)
     _finish(ws)
 
     # -- Lage -----------------------------------------------------------
