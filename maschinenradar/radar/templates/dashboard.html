@@ -68,6 +68,16 @@ h2 { font-size: 15px; font-weight: 600; }
 .histcap { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 3px; }
 .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 10px 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
 
+.deck-row { display: grid; grid-template-columns: minmax(170px, 1.6fr) 90px 150px minmax(140px, 2fr); gap: 6px 20px; padding: 8px 16px; align-items: center; }
+.deck-row + .deck-row, #deckung .deck-row { border-top: 1px solid var(--line); }
+.deck-head { border-bottom: 0; }
+.deck-row .r { text-align: right; }
+.cover { display: flex; align-items: center; gap: 10px; }
+.cover .track { flex: 1; height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.cover .track i { display: block; height: 100%; }
+.cover .low i { background: var(--due); } .cover .mid i { background: var(--warn); } .cover .full i { background: var(--ok); }
+#deckung-box { margin-top: 12px; }
+
 /* Ansichten */
 .tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; display: flex; gap: 4px; margin-top: 24px; padding-block: 8px; background: var(--bg); overflow-x: auto; }
 .tabs button { flex: none; font: inherit; font-weight: 500; color: var(--muted); background: none; border: 1px solid transparent; border-radius: var(--r); padding: 7px 12px; cursor: pointer; }
@@ -143,6 +153,9 @@ summary:hover { background: var(--surface-2); }
 @media (max-width: 760px) {
   .lage-head { display: none; }
   .lage-row { grid-template-columns: 1fr; }
+  .deck-row { grid-template-columns: minmax(0, 1fr) 56px 56px; }
+  .deck-row .cover { grid-column: 1 / -1; }
+  .deck-head div:last-child { display: none; }
   .act { grid-template-columns: 28px minmax(0, 1fr) 64px; }
   .act .why, .act .score { grid-column: 2 / -1; }
   .act .open { grid-column: 3; grid-row: 1; justify-self: end; }
@@ -173,6 +186,12 @@ summary:hover { background: var(--surface-2); }
       <span class="dot s0">passt</span><span class="dot s1">prüfen (Daten fehlen)</span><span class="dot s2">außerhalb der Spezifikation</span>
       <span>Baujahre in 5-Jahres-Klassen, farbig ab dem Mindest-Baujahr</span>
     </div>
+  </section>
+
+  <section class="lage" id="deckung-box" aria-label="Bedarfsdeckung" hidden>
+    <div class="deck-head deck-row label"><div>Bedarf</div><div class="r">Benötigt</div><div class="r">Passende Angebote</div><div>Deckung</div></div>
+    <div id="deckung"></div>
+    <div class="legend"><span>Passende Angebote: Spezifikation erfüllt, ohne Dubletten. Bei Spritzgießmaschinen nach Holmklasse; außerhalb von Arburg ist die Klasse aus der Schließkraft geschätzt.</span></div>
   </section>
 
   <nav class="tabs" role="tablist" id="tabs"></nav>
@@ -263,6 +282,19 @@ summary:hover { background: var(--surface-2); }
       '<div><div class="hist">' + hist + '</div><div class="histcap"><span>vor 1980</span><span>jüngstes: ' + (p.ymax || "–") + "</span></div></div></div>";
   }).join("");
 
+  /* Bedarfsdeckung (nur wenn eine lokale Bedarfsdatei vorlag) */
+  if (D.deckung && D.deckung.length) {
+    $("deckung-box").hidden = false;
+    $("deckung").innerHTML = D.deckung.map(function (c) {
+      var pct = c.bedarf ? Math.min(100, 100 * c.passt / c.bedarf) : 0;
+      var cls = pct >= 100 ? "full" : pct >= 50 ? "mid" : "low";
+      var label = D.profile[c.p].name.replace(/ Holmklasse.*/, "") + (c.klasse ? " · Holmklasse " + c.klasse : "");
+      var extra = c.wunsch != null ? ' <span class="muted" style="font-size:12px">davon ' + c.wunsch + " Wunschmodell</span>" : "";
+      return '<div class="deck-row"><div><b>' + esc(label) + '</b></div><div class="r num">' + num(c.bedarf) + '</div><div class="r"><span class="num">' + num(c.passt) + "</span>" + extra + "</div>" +
+        '<div class="cover"><span class="track ' + cls + '"><i style="width:' + pct.toFixed(1) + '%"></i></span><span class="num">' + Math.round(100 * c.passt / (c.bedarf || 1)) + " %</span></div></div>";
+    }).join("");
+  }
+
   /* Ansichten */
   D.insolvenzen = D.insolvenzen || [];
   var VIEWS = [["aktionen", "Aktionsliste", D.aktionen.length], ["angebote", "Angebote", total], ["insolvenzen", "Insolvenzen", D.insolvenzen.length], ["anfragen", "Anfragen", D.anfragen.length], ["auktionen", "Auktionen", D.auktionen.filter(function (a) { return a.treffer.length; }).length]];
@@ -350,7 +382,7 @@ summary:hover { background: var(--surface-2); }
     $("rows").innerHTML = slice.map(function (x, i) {
       var idx = page * PER + i;
       var row = '<tr class="main" data-i="' + idx + '"><td><span class="pill s' + x.s + '">' + PASS[x.s] + "</span></td>" +
-        "<td><b>" + esc(name(x)) + "</b>" + (x.neu ? '<span class="tag">neu</span>' : "") + (x.dup ? '<span class="tag">Dublette?</span>' : "") + '<div class="muted" style="font-size:12px">' + esc(D.profile[x.p].name) + "</div></td>" +
+        "<td><b>" + esc(name(x)) + "</b>" + (x.wm ? '<span class="tag">Wunschmodell</span>' : "") + (x.bg ? '<span class="tag">Holm ' + esc(x.bg) + "</span>" : "") + (x.neu ? '<span class="tag">neu</span>' : "") + (x.dup ? '<span class="tag">Dublette?</span>' : "") + '<div class="muted" style="font-size:12px">' + esc(D.profile[x.p].name) + "</div></td>" +
         '<td class="r num">' + (x.y || "–") + '</td><td class="r num">' + num(x.k) + '</td><td class="r num">' + num(x.bh) + '</td><td class="r num">' + (x.pe ? num(x.pe) : '<span class="muted">auf Anfrage</span>') + "</td>" +
         "<td>" + esc([x.o, x.l].filter(Boolean).join(", ") || "–") + "</td><td>" + esc(x.q) + "</td><td>" + link(x.u, "Inserat") + "</td></tr>";
       if (idx === openRow) row += '<tr class="detail"><td></td><td colspan="8"><b>' + esc(x.g) + "</b>" + (x.z ? " · Zustand: " + esc(x.z) : "") + (x.pr && x.w !== "EUR" ? " · Originalpreis " + num(x.pr) + " " + esc(x.w) : "") + "<br>" + esc(x.d) + (x.d && x.d.length >= 320 ? " …" : "") + "</td></tr>";

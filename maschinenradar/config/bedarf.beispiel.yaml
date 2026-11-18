@@ -1,0 +1,11 @@
+# Vorlage für config/bedarf.local.yaml (wird nicht versioniert).
+# Stückzahlen je Maschinenart; bei Spritzgießmaschinen je Holmklasse.
+# Die Zahlen hier sind erfunden.
+bedarf:
+  stanzautomat: 1
+  langdrehautomat: 5
+  rundtaktmaschine: 1
+  spritzgiessmaschine:
+    370: 3
+    470: 4
+    570: 2

@@ -23,6 +23,8 @@ class Listing:
     zustand: str = ""
     betriebsstunden: int | None = None
     kraft_kn: float | None = None
+    baugroesse: str = ""  # Holmklasse bei Spritzgießmaschinen, z. B. "470"
+    wunschmodell: bool = False
     hubzahl_max: int | None = None
     stange_mm: float | None = None
     llm_ergaenzt: bool = False

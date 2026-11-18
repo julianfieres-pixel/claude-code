@@ -167,8 +167,8 @@ def write(
         ["Gruppe", "Maschinenart", "Passung", "Begründung", "Hersteller", "Modell", "Baujahr",
          "Kraft kN", "Betriebsstunden", "Preis", "Währung", "Preis EUR (ca.)", "Preisstatus",
          "Land", "Ort", "Zustand", "Verkäufer", "Quelle", "Link", "erstmals gesehen",
-         "mögliche Dublette", "Kategorie lt. Quelle", "Beschreibung"],
-        [11, 26, 14, 34, 14, 24, 9, 9, 12, 11, 8, 12, 14, 14, 22, 20, 24, 15, 12, 13, 22, 26, 80],
+         "mögliche Dublette", "Kategorie lt. Quelle", "Beschreibung", "Holmklasse (ca.)", "Wunschmodell"],
+        [11, 26, 14, 34, 14, 24, 9, 9, 12, 11, 8, 12, 14, 14, 22, 20, 24, 15, 12, 13, 22, 26, 80, 12, 12],
     )
     listings = sorted(
         listings,
@@ -181,7 +181,8 @@ def write(
             p.gruppe, p.name, x.passung, x.passung_grund, x.hersteller, x.modell, x.baujahr,
             x.kraft_kn, x.betriebsstunden, x.preis, x.waehrung, eur(x, cfg), status, x.land,
             x.ort, x.zustand, x.verkaeufer, x.quelle, "öffnen", first_seen.get(x.key, run),
-            x.moegliche_dublette, x.kategorie, x.beschreibung[:500],
+            x.moegliche_dublette, x.kategorie, x.beschreibung[:500], x.baugroesse,
+            "ja" if x.wunschmodell else "",
         ])
         r = ws.max_row
         ws.cell(row=r, column=3).fill = FILLS.get(x.passung, FILLS[AUSSERHALB])

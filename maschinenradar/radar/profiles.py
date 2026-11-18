@@ -25,6 +25,13 @@ class Profile:
     spez: dict = field(default_factory=dict)
     quellen: dict[str, list[str]] = field(default_factory=dict)
     hersteller_pflicht: bool = False  # nur Angebote der gelisteten Hersteller zulassen
+    aktiv: bool = True
+    wunschmodelle: list[str] = field(default_factory=list)  # bevorzugte Typen, z. B. "SR-20"
+    holmklassen: bool = False  # Spritzguss: Angebote nach Holmklasse einordnen
+
+    def is_wunschmodell(self, lst: Listing) -> bool:
+        name = re.sub(r"[^a-z0-9]", "", f"{lst.modell} {lst.titel}".lower())
+        return any(re.sub(r"[^a-z0-9]", "", w.lower()) in name for w in self.wunschmodelle)
 
     def matches(self, lst: Listing) -> bool:
         head = f"{lst.kategorie} {lst.titel}".lower()
@@ -67,6 +74,7 @@ class Config:
     llm_modell: str = "claude-opus-5-5"
     aktionen_je_maschinenart: int = 15
     insolvenzen: dict = field(default_factory=dict)
+    bedarf: dict = field(default_factory=dict)  # Stückzahlen aus der lokalen Datei, nicht im Repository
 
     @property
     def brands(self) -> list[str]:
@@ -78,7 +86,9 @@ class Config:
 
 def load(path: Path) -> Config:
     raw = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
-    profiles = [Profile(**m) for m in raw["maschinen"]]
+    profiles = [p for p in (Profile(**m) for m in raw["maschinen"]) if p.aktiv]
+    local = Path(path).with_name("bedarf.local.yaml")  # vertrauliche Stückzahlen, per .gitignore ausgeschlossen
+    bedarf = (yaml.safe_load(local.read_text(encoding="utf-8")) or {}).get("bedarf", {}) if local.exists() else {}
     return Config(
         profiles=profiles,
         wechselkurse=raw.get("wechselkurse", {"EUR": 1.0}),
@@ -87,6 +97,7 @@ def load(path: Path) -> Config:
         llm_modell=(raw.get("llm") or {}).get("modell", "claude-opus-5-5"),
         aktionen_je_maschinenart=(raw.get("aktionsliste") or {}).get("je_maschinenart", 15),
         insolvenzen=raw.get("insolvenzen") or {},
+        bedarf=bedarf,
     )
 
 
@@ -103,6 +114,9 @@ def classify(lst: Listing, cfg: Config) -> bool:
     if by_model:  # Typbezeichnung ist verlaesslicher als Freitext
         lst.kraft_kn = by_model
     lst.profil_id = prof.id
+    if prof.holmklassen:
+        lst.baugroesse, _ = ex.tiebar_class(lst.hersteller, f"{lst.modell} {lst.titel}", lst.kraft_kn)
+    lst.wunschmodell = prof.is_wunschmodell(lst)
     lst.passung, lst.passung_grund = prof.assess(lst)
     return True
 

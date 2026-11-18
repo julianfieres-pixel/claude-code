@@ -254,12 +254,43 @@ def test_llm_enrich_fills_only_missing_fields():
 
 
 def test_hersteller_pflicht_filters_other_brands():
-    bender = _listing(titel="Stanz- Biegeautomat Salvagnini P2L-2120", kategorie="Stanz- Biegeautomat",
-                      hersteller="Salvagnini")
-    assert not profiles.classify(bender, CFG)
-    bihler = _listing(titel="Stanz- Biegeautomat BIHLER GRM 80", kategorie="Stanz- Biegeautomat",
-                      hersteller="BIHLER", baujahr=1999)
-    assert profiles.classify(bihler, CFG) and bihler.profil_id == "stanzbiegeautomat"
+    longbed = _listing(titel="Langdrehautomat WMW Machinery 1600 x 10.000 mm", kategorie="Langdrehautomat",
+                       hersteller="WMW Machinery")
+    assert not profiles.classify(longbed, CFG)
+    star = _listing(titel="Langdrehautomat STAR Micronics SR-20J II", kategorie="Langdrehautomat",
+                    hersteller="STAR Micronics", modell="SR-20J II", baujahr=2019)
+    assert profiles.classify(star, CFG) and star.profil_id == "langdrehautomat" and star.wunschmodell
+    other = _listing(titel="Langdrehautomat Citizen L32", kategorie="Langdrehautomat",
+                     hersteller="Citizen", modell="L32", baujahr=2019)
+    assert profiles.classify(other, CFG) and not other.wunschmodell
+    assert scoring.score(star, CFG).punkte == scoring.score(other, CFG).punkte + 10
+
+
+@pytest.mark.parametrize(
+    "brand,model,kn,expected",
+    [
+        ("Arburg", "Allrounder 470 A 1000-290", 1000, ("470", False)),
+        ("ARBURG", "570 E 2000-800", 2000, ("570", False)),
+        ("Arburg", "630A", None, ("630", False)),
+        ("Engel", "victory 330/80", 800, ("420", True)),
+        ("Fanuc", "Roboshot", None, ("", False)),
+    ],
+)
+def test_tiebar_class(brand, model, kn, expected):
+    assert ex.tiebar_class(brand, model, kn) == expected
+
+
+def test_real_demand_classes():
+    assert [p.id for p in CFG.profiles] == ["stanzautomat", "langdrehautomat", "rundtaktmaschine",
+                                            "spritzgiessmaschine"]
+    arburg = _listing(titel="Spritzgießmaschine Arburg Allrounder 630 S 2500-1300",
+                      kategorie="Spritzgießmaschine", hersteller="Arburg",
+                      modell="Allrounder 630 S 2500-1300", baujahr=2018)
+    assert profiles.classify(arburg, CFG)
+    assert (arburg.baugroesse, arburg.kraft_kn, arburg.passung) == ("630", 2500, profiles.PASST)
+    winema = _listing(titel="Rundtaktmaschine Winema RV 20 Flexmaster", kategorie="Rundtaktmaschine",
+                      hersteller="Winema", modell="RV 20 Flexmaster", baujahr=2012)
+    assert profiles.classify(winema, CFG) and winema.profil_id == "rundtaktmaschine" and winema.wunschmodell
 
 
 def test_dashboard_render_embeds_data_safely():

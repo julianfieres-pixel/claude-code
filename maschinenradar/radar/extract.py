@@ -86,6 +86,28 @@ def force_from_model(hersteller: str, modell: str) -> float | None:
     return None
 
 
+HOLMKLASSEN = (370, 420, 470, 520, 570, 630, 720)
+# Obergrenze der Schließkraft je Klasse (kN), angelehnt an die Arburg-Baureihen
+_KLASSE_BIS = ((700, 370), (1000, 420), (1500, 470), (2000, 520), (2200, 570), (2600, 630), (3300, 720))
+
+
+def tiebar_class(hersteller: str, modell: str, kraft_kn: float | None) -> tuple[str, bool]:
+    """Holmklasse (lichte Weite in mm) -> (Klasse, geschätzt?).
+
+    Bei Arburg steht sie in der Typbezeichnung (Allrounder 470 A = 470 mm). Bei anderen
+    Herstellern wird sie aus der Schließkraft geschätzt.
+    """
+    if "arburg" in hersteller.lower() or "allrounder" in modell.lower():
+        m = re.search(r"(?<![\d-])(" + "|".join(map(str, HOLMKLASSEN)) + r")(?!\d)", modell)
+        if m:
+            return m.group(1), False
+    if kraft_kn:
+        for bis, klasse in _KLASSE_BIS:
+            if kraft_kn <= bis:
+                return str(klasse), True
+    return "", False
+
+
 def parse_force_kn(text: str | None) -> float | None:
     """Press-/Schliesskraft in kN aus Freitext; Tonnen werden mit Faktor 10 umgerechnet."""
     t = text or ""

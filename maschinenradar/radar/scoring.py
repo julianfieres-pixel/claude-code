@@ -61,6 +61,9 @@ def score(lst: Listing, cfg: Config) -> Action | None:
         punkte += 5
         teile.append(f"Standort {lst.land} (Transport, CE prüfen)")
 
+    if lst.wunschmodell:
+        punkte += 10
+        teile.insert(0, "Wunschmodell")
     if lst.passung == PASST:
         aktion = A_VERHANDELN if lst.preis else A_PREIS
     else:

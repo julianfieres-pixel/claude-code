@@ -60,7 +60,7 @@ def build(cfg: Config, listings: list[Listing], auctions: list[Auction], logs: l
         "bh": x.betriebsstunden, "pr": x.preis, "w": x.waehrung, "pe": eur(x, cfg),
         "l": x.land, "o": x.ort, "z": x.zustand, "q": x.quelle, "u": x.url,
         "d": x.beschreibung[:320], "neu": first_seen.get(x.key) == run,
-        "dup": bool(x.moegliche_dublette),
+        "dup": bool(x.moegliche_dublette), "bg": x.baugroesse, "wm": x.wunschmodell,
     } for x in listings]
 
     acts = []
@@ -84,7 +84,22 @@ def build(cfg: Config, listings: list[Listing], auctions: list[Auction], logs: l
                          "k": x.kraft_kn, "bh": x.betriebsstunden, "pe": eur(x, cfg), "l": x.land,
                          "o": x.ort, "g": a.grund, "q": x.quelle, "u": x.url})
 
+    deckung = []
+    for p in cfg.profiles:
+        need = cfg.bedarf.get(p.id)
+        if need is None:
+            continue
+        ls = [x for x in listings if x.profil_id == p.id and x.passung == PASST and not x.moegliche_dublette]
+        if isinstance(need, dict):
+            for klasse, n in need.items():
+                deckung.append({"p": index[p.id], "klasse": str(klasse), "bedarf": n,
+                                "passt": sum(x.baugroesse == str(klasse) for x in ls)})
+        else:
+            wm = sum(x.wunschmodell for x in ls)
+            deckung.append({"p": index[p.id], "klasse": "", "bedarf": need, "passt": len(ls),
+                            "wunsch": wm if p.wunschmodelle else None})
     return {
+        "deckung": deckung,
         "lauf": run,
         "kurse": cfg.wechselkurse,
         "profile": profiles,

@@ -53,6 +53,18 @@ config/maschinen.yaml ─► Quellen-Adapter ─► Extraktion ─► Zuordnung 
 Nicht angebunden: Machinio (blockt automatisierte Zugriffe) und die Suche von
 gebrauchtmaschinen.de (per robots.txt gesperrt).
 
+## Bedarf und Vertraulichkeit
+
+`config/maschinen.yaml` enthält nur generische Maschinenklassen und wird versioniert.
+Stückzahlen stehen in `config/bedarf.local.yaml`, die per `.gitignore` ausgeschlossen ist
+(Vorlage: `config/bedarf.beispiel.yaml`). Liegt die Datei vor, zeigt das Dashboard je
+Maschinenart die Bedarfsdeckung: benötigte Stückzahl gegen passende Angebote.
+
+Spritzgießmaschinen werden nach Holmklasse eingeordnet (lichte Holmweite 370 bis 720 mm).
+Bei Arburg steht die Klasse in der Typbezeichnung (Allrounder 470 A), bei anderen Herstellern
+wird sie aus der Schließkraft geschätzt. `wunschmodelle` im Profil geben 10 Punkte Bonus
+(z. B. Star SR-20/SB-20, Winema Flex-Master, Arburg Allrounder).
+
 ## Passung
 
 - **passt**: Baujahr und Kraft liegen im Zielbereich der Spezifikation.

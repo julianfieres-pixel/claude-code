@@ -1,5 +1,7 @@
-# Maschinenliste und Suchprofile (Beispiel-Spezifikation fuer die Steckerfertigung).
-# Diese Datei ist der Input des Radars: Zeilen anpassen, ergaenzen oder loeschen.
+# Maschinenliste und Suchprofile für die Steckerfertigung.
+# Diese Datei ist der Input des Radars: Zeilen anpassen, ergänzen oder löschen.
+# Hier stehen nur generische Maschinenklassen. Stückzahlen gehören in die lokale Datei
+# config/bedarf.local.yaml, die nicht versioniert wird (Vorlage: bedarf.beispiel.yaml).
 
 # Naeherungskurse fuer die Spalte "Preis EUR (ca.)" - bitte vor Nutzung anpassen.
 wechselkurse:
@@ -24,7 +26,7 @@ maschinen:
     gruppe: Stanzen
     spez:
       baujahr_min: 2000
-      kraft_kn: [150, 800]
+      kraft_kn: [150, 800]   # bis 80 t
     hersteller: [Bruderer, Yamada Dobby, Kyori, Aida, Haulick, Raster, Minster, Schuler]
     begriffe: [stanzautomat, schnellläufer, schnelllaeufer, high speed press, high speed and automatic, hochleistungsstanz, stanzpresse]
     ausschluss: [vorschub, haspel, richtmaschine, werkzeug, ersatzteil, feeder only]
@@ -37,6 +39,7 @@ maschinen:
 
   - id: stanzbiegeautomat
     name: Stanzbiegeautomat
+    aktiv: false   # nicht Teil der aktuellen Bedarfsliste
     gruppe: Stanzen
     spez:
       baujahr_min: 1995
@@ -55,6 +58,7 @@ maschinen:
       baujahr_min: 2008
     hersteller: [Citizen, Star, Tornos, Tsugami, Traub, Hanwha, Nomura, Manurhin, Maier, Index, DMG, Gildemeister, Swistek, Nexturn, Polygim, KSI, Goodway, Ganesh, Hardinge, Miyano, Doosan]
     hersteller_pflicht: true   # Kategorie enthält auch Langbett-Drehmaschinen
+    wunschmodelle: [SR-20, SR20, SB-20, SB20]   # Star SR-20 / SB-20
     begriffe: [langdrehautomat, langdreher, swiss type, swiss-type, swiss automatic, swiss lathe, swiss turn, sliding head]
     ausschluss: [stangenlader, lademagazin, bar feeder only, spannzange]
     quellen:
@@ -62,8 +66,21 @@ maschinen:
       resale: [langdrehautomat, citizen-langdrehautomaten]
       surplusrecord: [swiss-type-and-lathe-cnc-automatic-screw-machines]
 
+  - id: rundtaktmaschine
+    name: Rundtaktmaschine
+    gruppe: Drehen
+    spez:
+      baujahr_min: 2005
+    hersteller: [Winema, Pfiffner, Hydromat, Mikron, Kneissler, Witzig & Frank, Wolf, Icon, Gnutti, Buffoli, Riello]
+    begriffe: [rundtakt, transfermaschine, rotary transfer]
+    ausschluss: [spannzange, ersatzteil]
+    wunschmodelle: [Flexmaster, Flex-Master, RV 20, RV20]   # Winema Flex-Master
+    quellen:
+      maschinensucher: [rundtaktmaschine]
+
   - id: mehrspindler
     name: CNC-Mehrspindeldrehautomat
+    aktiv: false   # nicht Teil der aktuellen Bedarfsliste
     gruppe: Drehen
     spez:
       baujahr_min: 2005
@@ -75,11 +92,13 @@ maschinen:
       resale: [mehrspindeldrehautomat]
 
   - id: spritzgiessmaschine
-    name: Spritzgießmaschine 35-160 t
+    name: Spritzgießmaschine Holmklasse 370–720
     gruppe: Spritzguss
+    holmklassen: true        # Einordnung nach lichter Holmweite (Arburg Allrounder 370 bis 720)
+    wunschmodelle: [Allrounder]   # Arburg bevorzugt
     spez:
       baujahr_min: 2010
-      kraft_kn: [350, 1600]
+      kraft_kn: [400, 3300]
     hersteller: [Arburg, Engel, Fanuc, Sumitomo, Demag, KraussMaffei, Krauss Maffei, Wittmann Battenfeld, Battenfeld, Nissei, Boy, Toyo, JSW]
     begriffe: [spritzgie, spritzguss, injection mold, injection mould, allrounder, roboshot]
     ausschluss: [werkzeug, temperiergerät, trockner, granulat, förderband, ersatzteil, schnecke]
