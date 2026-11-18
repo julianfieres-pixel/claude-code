@@ -112,7 +112,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--config", type=Path, default=here / "config" / "maschinen.yaml")
     ap.add_argument("--out", default=str(here / "out"))
     ap.add_argument("--quellen", help="Kommaliste, z. B. maschinensucher,resale (Standard: alle)")
-    ap.add_argument("--max-seiten", type=int, default=6, help="Ergebnisseiten je Suchanfrage")
+    ap.add_argument("--max-seiten", type=int, default=40, help="Höchstzahl Ergebnisseiten je Suchanfrage")
     ap.add_argument("--pause", type=float, default=3.0, help="Sekunden zwischen Abrufen je Host")
     ap.add_argument("--cache-stunden", type=float, default=0, help="Seiten so lange aus dem Cache lesen")
     ap.add_argument("--dashboard-fragment", help="Dashboard zusätzlich ohne HTML-Rahmen schreiben (zum Einbetten)")
