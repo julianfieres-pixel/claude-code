@@ -107,6 +107,8 @@ maschinen:
       maschinensucher: [/Schliesskraft-250-999-kN/ci-1214, /Schliesskraft-1000-4999-kN/ci-1215, arburg, engel, krauss maffei, demag, battenfeld, netstal]
       resale: [spritzgiessmaschine]
       surplusrecord: [screw-type-injection-molding-machine/arburg, screw-type-injection-molding-machine/fanuc, screw-type-injection-molding-machine/engel]
+      plasticker: [Spritzgiessmaschinen]
+      wotol: [injection-molding-100t-to-300t/injection-blow-molding-and-forming-machine/plastic/889]
 
 # NetBid: Auktionskalender wird nach diesen Begriffen durchsucht (Titel der Auktion).
 auktionen:

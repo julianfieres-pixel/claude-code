@@ -356,3 +356,45 @@ def test_insolvency_filters_and_scoring():
     merged = insolvency.merge([e, sold])
     assert len(merged) == 1 and merged[0].status.startswith("Verkauft") and merged[0].meldungen == 2
     assert "Muster Stanztechnik GmbH" in insolvency.anfrage(e, CFG.anfrage)
+
+
+# -- weitere Quellen ----------------------------------------------------------
+from radar.sources.plasticker import Plasticker  # noqa: E402
+from radar.sources.wotol import Wotol  # noqa: E402
+
+WOTOL_HTML = """<h1>Used Injection Molding 100T to 300T</h1>
+<article class="rd-row-card"><div class="rd-row-card__body">
+ <h2 class="rd-row-card__title"><a href="/product/arburg-allrounder-630-s-2500-800-250-t/2738010">
+  Arburg Allrounder 630 S 2500-800 250 T</a></h2>
+ <p class="rd-row-card__desc">operation hours: 25474 h</p>
+ <p class="rd-row-card__year">Year: 2015</p>
+ <p class="rd-row-card__meta">◉ EUROPE (Western and Northern)</p></div></article>
+<a href="/cat/x/889?page=2">2</a>"""
+
+
+def test_wotol_parse():
+    src = Wotol(CFG.brands)
+    (l,) = src.parse(WOTOL_HTML)
+    assert (l.quelle_id, l.hersteller, l.modell) == ("2738010", "Arburg", "Allrounder 630 S 2500-800")
+    assert (l.baujahr, l.kraft_kn, l.land, l.betriebsstunden) == (2015, 2500, "Europa", 25474)
+    assert src.has_next(WOTOL_HTML, 1) and not src.has_next(WOTOL_HTML, 2)
+    assert profiles.classify(l, CFG) and l.baugroesse == "630" and l.passung == profiles.PASST
+
+
+PLASTICKER_HTML = """<table><tr>
+ <td><a href="/requipment/Arburg_630S_rq102314"><p><span class="d10">Angebot (18.11.2026)</span></p>
+  <p><span class="d14">Arburg 630 S gepflegt..</span><br/>Spritzgiessmaschinen</p>
+  <p>ARBURG 630 S 2500-800</p></a>
+  <table><tr><td><img title="Unternehmen ist in Deutschland ansässig"/></td>
+   <td>Rottenburg, Deutschland (Anbieter)</td></tr></table></td>
+ <td><table><tr><td>Baujahr:</td><td>2016</td></tr><tr><td>Betriebsstd.:</td><td>28.722</td></tr></table></td>
+</tr></table>"""
+
+
+def test_plasticker_parse():
+    src = Plasticker(CFG.brands)
+    (l,) = src.parse(PLASTICKER_HTML)
+    assert (l.quelle_id, l.hersteller, l.baujahr, l.betriebsstunden) == ("102314", "Arburg", 2016, 28722)
+    assert (l.land, l.ort) == ("Deutschland", "Rottenburg, Deutschland")
+    assert src.url_for("Spritzgiessmaschinen", 3).endswith("art=Spritzgiessmaschinen&limit0=50")
+    assert profiles.classify(l, CFG) and (l.baugroesse, l.kraft_kn) == ("630", 2500)

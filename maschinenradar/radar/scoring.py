@@ -10,7 +10,7 @@ from .profiles import AUSSERHALB, PASST, Config
 EU = {
     "Deutschland", "Österreich", "Schweiz", "Frankreich", "Italien", "Niederlande", "Belgien",
     "Polen", "Tschechien", "Spanien", "Portugal", "Dänemark", "Schweden", "Ungarn", "Slowenien",
-    "Slowakei", "Luxemburg", "Finnland", "Rumänien", "Bulgarien", "Kroatien", "Irland",
+    "Slowakei", "Luxemburg", "Europa", "Finnland", "Rumänien", "Bulgarien", "Kroatien", "Irland",
 }
 
 A_VERHANDELN = "Angebot einholen und Besichtigung vereinbaren"
