@@ -396,5 +396,19 @@ def test_plasticker_parse():
     (l,) = src.parse(PLASTICKER_HTML)
     assert (l.quelle_id, l.hersteller, l.baujahr, l.betriebsstunden) == ("102314", "Arburg", 2016, 28722)
     assert (l.land, l.ort) == ("Deutschland", "Rottenburg, Deutschland")
-    assert src.url_for("Spritzgiessmaschinen", 3).endswith("art=Spritzgiessmaschinen&limit0=50")
+    assert src.url_for("Spritzgiessmaschinen", 3).endswith("art=Spritzgiessmaschinen&show=2")
     assert profiles.classify(l, CFG) and (l.baugroesse, l.kraft_kn) == ("630", 2500)
+
+
+def test_search_stops_when_a_page_repeats():
+    class Fake:
+        def __init__(self):
+            self.calls = 0
+
+        def get(self, url):
+            self.calls += 1
+            return WOTOL_HTML.replace("page=2", f"page={self.calls + 1}")
+
+    f = Fake()
+    items, log = Wotol(CFG.brands, max_pages=10).search(f, "x/889")
+    assert len(items) == 1 and f.calls == 2 and "wiederholt" in log.hinweis

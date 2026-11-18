@@ -29,11 +29,16 @@ class Source:
     def search(self, fetcher: Fetcher, query: str) -> tuple[list[Listing], SourceLog]:
         log = SourceLog(self.name, query, self.url_for(query))
         out: list[Listing] = []
+        seen: set[str] = set()
         for page in range(1, self.max_pages + 1):
             html = fetcher.get(self.url_for(query, page))
             if html is None:
                 break
             items = self.parse(html)
+            if items and all(it.quelle_id in seen for it in items):
+                log.hinweis = f"Seite {page} wiederholt nur bekannte Angebote, abgebrochen"
+                break
+            seen.update(it.quelle_id for it in items)
             log.seiten += 1
             for it in items:
                 it.suchanfrage = query

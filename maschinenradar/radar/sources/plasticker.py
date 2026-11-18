@@ -21,8 +21,8 @@ class Plasticker(Source):
     name = "plasticker"
 
     def url_for(self, query: str, page: int = 1) -> str:
-        return (f"{BASE}/requipment/listaog.php?aog=A&art={quote(query)}"
-                f"&limit0={PER_PAGE * (page - 1)}")
+        url = f"{BASE}/requipment/listaog.php?aog=A&art={quote(query)}"
+        return url if page == 1 else f"{url}&show={page - 1}"
 
     def has_next(self, html: str, page: int) -> bool:
         return len(re.findall(r'_rq\d+"', html)) >= PER_PAGE
