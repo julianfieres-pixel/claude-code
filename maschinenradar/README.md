@@ -65,11 +65,22 @@ Bei Arburg steht die Klasse in der Typbezeichnung (Allrounder 470 A), bei andere
 wird sie aus der Schließkraft geschätzt. `wunschmodelle` im Profil geben 10 Punkte Bonus
 (z. B. Star SR-20/SB-20, Winema Flex-Master, Arburg Allrounder).
 
+## Karte
+
+Die Ansicht „Karte" zeigt je Land einen Kreis, dessen Fläche der Zahl der Angebote entspricht,
+wahlweise für Europa oder die Welt. Die Quellen nennen den Standort nur als Text, deshalb
+arbeitet die Karte auf Länderebene; Wotol nennt nur die Weltregion und erscheint in der Liste
+neben der Karte. Die Umrisse stammen aus Natural Earth (gemeinfrei) und liegen in
+`radar/templates/world.json`; `tools/build_world.py` erzeugt die Datei neu.
+
 ## Passung
 
 - **passt**: Baujahr und Kraft liegen im Zielbereich der Spezifikation.
 - **prüfen**: Das Angebot gehört zur Maschinenart, aber Baujahr oder Kraft fehlen im Inserat.
 - **außerhalb Spez.**: Baujahr zu alt oder Kraft außerhalb des Bereichs.
+
+Liegt das Baujahr in der Zukunft, gilt das Angebot als „prüfen": Händler tragen bei Bestell-
+und Überholmaschinen das Lieferjahr ein. Solche Angebote erhalten keine Alterspunkte.
 
 Die Kraft wird bevorzugt aus der Typbezeichnung gelesen (Bruderer BSTA 25 = 250 kN,
 Arburg 370 S 600-100 = 600 kN), sonst aus dem Beschreibungstext.

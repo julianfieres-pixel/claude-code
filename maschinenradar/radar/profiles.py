@@ -7,7 +7,10 @@ from pathlib import Path
 
 import yaml
 
+import datetime as dt
+
 from . import extract as ex
+from . import geo
 from .models import Listing
 
 PASST, PRUEFEN, AUSSERHALB = "passt", "prüfen", "außerhalb Spez."
@@ -47,7 +50,11 @@ class Profile:
         """Passung zur Spezifikation: (Status, Begruendung)."""
         out, offen = [], []
         ymin = self.spez.get("baujahr_min")
-        if ymin:
+        if lst.baujahr and lst.baujahr > dt.date.today().year:
+            # Händler tragen bei Bestell- und Überholmaschinen das Lieferjahr als Baujahr ein
+            offen.append(f"Baujahr {lst.baujahr} liegt in der Zukunft: Bestell- oder "
+                         "Überholmaschine, tatsächliches Baujahr erfragen")
+        elif ymin:
             if lst.baujahr is None:
                 offen.append("Baujahr unbekannt")
             elif lst.baujahr < ymin:
@@ -114,6 +121,7 @@ def classify(lst: Listing, cfg: Config) -> bool:
     if by_model:  # Typbezeichnung ist verlaesslicher als Freitext
         lst.kraft_kn = by_model
     lst.profil_id = prof.id
+    lst.land = geo.normalize_country(lst.land)
     if prof.holmklassen:
         lst.baugroesse, _ = ex.tiebar_class(lst.hersteller, f"{lst.modell} {lst.titel}", lst.kraft_kn)
     lst.wunschmodell = prof.is_wunschmodell(lst)

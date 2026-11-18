@@ -40,7 +40,7 @@ def score(lst: Listing, cfg: Config) -> Action | None:
     teile.append("Spezifikation erfüllt" if lst.passung == PASST else lst.passung_grund)
 
     ymin = prof.spez.get("baujahr_min") if prof else None
-    if lst.baujahr and ymin:
+    if lst.baujahr and ymin and lst.baujahr <= dt.date.today().year:
         span = max(dt.date.today().year - ymin, 1)
         alter = round(25 * min(max(lst.baujahr - ymin, 0), span) / span)
         punkte += alter

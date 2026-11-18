@@ -7,7 +7,7 @@ from collections import Counter
 from pathlib import Path
 from statistics import median
 
-from . import insolvency
+from . import geo, insolvency
 from .models import Auction, Listing, SourceLog
 from .profiles import AUSSERHALB, PASST, PRUEFEN, RANK, Config
 from .report import eur
@@ -33,7 +33,7 @@ def build(cfg: Config, listings: list[Listing], auctions: list[Auction], logs: l
     for p in cfg.profiles:
         ls = [x for x in listings if x.profil_id == p.id]
         prices = [e for e in (eur(x, cfg) for x in ls) if e]
-        years = [x.baujahr for x in ls if x.baujahr]
+        years = [x.baujahr for x in ls if x.baujahr and x.baujahr <= dt.date.today().year]
         spec = []
         if p.spez.get("baujahr_min"):
             spec.append(f"Baujahr ab {p.spez['baujahr_min']}")
@@ -100,6 +100,8 @@ def build(cfg: Config, listings: list[Listing], auctions: list[Auction], logs: l
                             "wunsch": wm if p.wunschmodelle else None})
     return {
         "deckung": deckung,
+        "welt": geo.world(),
+        "jahr": dt.date.today().year,
         "lauf": run,
         "kurse": cfg.wechselkurse,
         "profile": profiles,

@@ -78,6 +78,21 @@ h2 { font-size: 15px; font-weight: 600; }
 .cover .low i { background: var(--due); } .cover .mid i { background: var(--warn); } .cover .full i { background: var(--ok); }
 #deckung-box { margin-top: 12px; }
 
+.mapbox { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 8px; }
+.mapbox svg { display: block; width: 100%; height: auto; }
+.mapbox .land { fill: var(--surface-2); stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.mapbox .dot { fill: var(--accent); fill-opacity: .78; stroke: var(--surface); stroke-width: 1.5; vector-effect: non-scaling-stroke; cursor: pointer; }
+.mapbox .dot:hover, .mapbox .dot:focus-visible { fill-opacity: 1; }
+.mapbox text { fill: var(--accent-fg); font-family: var(--mono); font-weight: 500; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.mapgrid { display: grid; grid-template-columns: minmax(0, 2.4fr) minmax(220px, 1fr); gap: 16px; align-items: start; }
+.maplist { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+.maplist h2 { padding: 10px 14px 6px; }
+.maplist button.row { display: grid; grid-template-columns: minmax(0, 1fr) 54px; gap: 8px; width: 100%; padding: 6px 14px; font: inherit; color: var(--fg); background: none; border: 0; border-top: 1px solid var(--line); text-align: left; cursor: pointer; }
+.maplist button.row:hover { background: var(--surface-2); }
+.maplist .row span:last-child { text-align: right; }
+.maplist .static { display: grid; grid-template-columns: minmax(0, 1fr) 54px; gap: 8px; padding: 6px 14px; border-top: 1px solid var(--line); color: var(--muted); }
+.maplist .static span:last-child { text-align: right; }
+
 /* Ansichten */
 .tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; display: flex; gap: 4px; margin-top: 24px; padding-block: 8px; background: var(--bg); overflow-x: auto; }
 .tabs button { flex: none; font: inherit; font-weight: 500; color: var(--muted); background: none; border: 1px solid transparent; border-radius: var(--r); padding: 7px 12px; cursor: pointer; }
@@ -153,6 +168,7 @@ summary:hover { background: var(--surface-2); }
 @media (max-width: 760px) {
   .lage-head { display: none; }
   .lage-row { grid-template-columns: 1fr; }
+  .mapgrid { grid-template-columns: 1fr; }
   .deck-row { grid-template-columns: minmax(0, 1fr) 56px 56px; }
   .deck-row .cover { grid-column: 1 / -1; }
   .deck-head div:last-child { display: none; }
@@ -222,6 +238,20 @@ summary:hover { background: var(--surface-2); }
   <section class="panel" id="v-anfragen" role="tabpanel" hidden>
     <p class="muted">Entwürfe für Angebote der Aktionsliste, bei denen Preis oder Daten fehlen. Es wurde nichts versendet.</p>
     <div class="list" id="anfragen"></div>
+  </section>
+
+  <section class="panel" id="v-karte" role="tabpanel" hidden>
+    <div class="filters">
+      <select id="k-p" aria-label="Maschinenart"></select>
+      <label class="chk"><input type="checkbox" id="k-pass" checked> nur passende Angebote</label>
+      <div class="chips" id="k-zoom"><button type="button" data-z="europa" aria-pressed="true">Europa</button><button type="button" data-z="welt" aria-pressed="false">Welt</button></div>
+      <span class="count" id="k-count"></span>
+    </div>
+    <div class="mapgrid">
+      <div class="mapbox"><svg id="karte" role="img" aria-label="Standorte der Angebote je Land"></svg></div>
+      <div class="maplist" id="k-list"></div>
+    </div>
+    <p class="muted" style="font-size:12px;max-width:90ch">Ein Kreis je Land, die Fläche entspricht der Zahl der Angebote. Die Quellen nennen den Ort nur als Text, deshalb zeigt die Karte Länder und keine Städte. Ein Klick auf Kreis oder Zeile öffnet die Angebote dieses Landes.</p>
   </section>
 
   <section class="panel" id="v-insolvenzen" role="tabpanel" hidden>
@@ -297,8 +327,8 @@ summary:hover { background: var(--surface-2); }
 
   /* Ansichten */
   D.insolvenzen = D.insolvenzen || [];
-  var VIEWS = [["aktionen", "Aktionsliste", D.aktionen.length], ["angebote", "Angebote", total], ["insolvenzen", "Insolvenzen", D.insolvenzen.length], ["anfragen", "Anfragen", D.anfragen.length], ["auktionen", "Auktionen", D.auktionen.filter(function (a) { return a.treffer.length; }).length]];
-  $("tabs").innerHTML = VIEWS.map(function (v) { return '<button type="button" role="tab" id="t-' + v[0] + '" data-v="' + v[0] + '">' + v[1] + '<span class="cnt">' + num(v[2]) + "</span></button>"; }).join("");
+  var VIEWS = [["aktionen", "Aktionsliste", D.aktionen.length], ["angebote", "Angebote", total], ["karte", "Karte", null], ["insolvenzen", "Insolvenzen", D.insolvenzen.length], ["anfragen", "Anfragen", D.anfragen.length], ["auktionen", "Auktionen", D.auktionen.filter(function (a) { return a.treffer.length; }).length]];
+  $("tabs").innerHTML = VIEWS.map(function (v) { return '<button type="button" role="tab" id="t-' + v[0] + '" data-v="' + v[0] + '">' + v[1] + (v[2] == null ? "" : '<span class="cnt">' + num(v[2]) + "</span>") + "</button>"; }).join("");
   function show(v) {
     if (!VIEWS.some(function (x) { return x[0] === v; })) v = "aktionen";
     VIEWS.forEach(function (x) { $("v-" + x[0]).hidden = x[0] !== v; $("t-" + x[0]).setAttribute("aria-selected", x[0] === v ? "true" : "false"); });
@@ -382,7 +412,7 @@ summary:hover { background: var(--surface-2); }
     $("rows").innerHTML = slice.map(function (x, i) {
       var idx = page * PER + i;
       var row = '<tr class="main" data-i="' + idx + '"><td><span class="pill s' + x.s + '">' + PASS[x.s] + "</span></td>" +
-        "<td><b>" + esc(name(x)) + "</b>" + (x.wm ? '<span class="tag">Wunschmodell</span>' : "") + (x.bg ? '<span class="tag">Holm ' + esc(x.bg) + "</span>" : "") + (x.neu ? '<span class="tag">neu</span>' : "") + (x.dup ? '<span class="tag">Dublette?</span>' : "") + '<div class="muted" style="font-size:12px">' + esc(D.profile[x.p].name) + "</div></td>" +
+        "<td><b>" + esc(name(x)) + "</b>" + (x.wm ? '<span class="tag">Wunschmodell</span>' : "") + (x.bg ? '<span class="tag">Holm ' + esc(x.bg) + "</span>" : "") + (x.y > D.jahr ? '<span class="tag">Bestellmaschine?</span>' : "") + (/^(neu|wie neu)/.test(x.z || "") ? '<span class="tag">Neumaschine</span>' : "") + (x.neu ? '<span class="tag">neu im Lauf</span>' : "") + (x.dup ? '<span class="tag">Dublette?</span>' : "") + '<div class="muted" style="font-size:12px">' + esc(D.profile[x.p].name) + "</div></td>" +
         '<td class="r num">' + (x.y || "–") + '</td><td class="r num">' + num(x.k) + '</td><td class="r num">' + num(x.bh) + '</td><td class="r num">' + (x.pe ? num(x.pe) : '<span class="muted">auf Anfrage</span>') + "</td>" +
         "<td>" + esc([x.o, x.l].filter(Boolean).join(", ") || "–") + "</td><td>" + esc(x.q) + "</td><td>" + link(x.u, "Inserat") + "</td></tr>";
       if (idx === openRow) row += '<tr class="detail"><td></td><td colspan="8"><b>' + esc(x.g) + "</b>" + (x.z ? " · Zustand: " + esc(x.z) : "") + (x.pr && x.w !== "EUR" ? " · Originalpreis " + num(x.pr) + " " + esc(x.w) : "") + "<br>" + esc(x.d) + (x.d && x.d.length >= 320 ? " …" : "") + "</td></tr>";
@@ -417,6 +447,56 @@ summary:hover { background: var(--surface-2); }
     function fallback() { var r = document.createRange(); r.selectNodeContents($("mail-" + b.dataset.i)); var s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = "Text markiert"; }
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { b.textContent = "Kopiert"; }, fallback); else fallback();
   });
+
+  /* Karte */
+  var REGION = { Europa: 1, Nordamerika: 1, "Südamerika": 1, Asien: 1, Afrika: 1, Nahost: 1, Ozeanien: 1 };
+  var zoom = "europa";
+  options($("k-p"), "Maschinenart: alle", D.profile.map(function (p, i) { return [i, p.name]; }));
+  function openLand(land) {
+    $("f-l").value = land; $("f-p").value = $("k-p").value; $("f-s").value = $("k-pass").checked ? "0" : "";
+    page = 0; openRow = -1; renderRows(); show("angebote");
+    try { history.replaceState(null, "", "#angebote"); } catch (err) { location.hash = "angebote"; }
+  }
+  function renderMap() {
+    var W = D.welt, p = $("k-p").value, only = $("k-pass").checked, by = {}, total = 0;
+    D.angebote.forEach(function (x) {
+      if (p !== "" && x.p !== +p) return;
+      if (only && (x.s !== 0 || x.dup)) return;
+      var k = x.l || "ohne Länderangabe"; by[k] = (by[k] || 0) + 1; total++;
+    });
+    var keys = Object.keys(by).sort(function (a, b) { return by[b] - by[a]; });
+    var onMap = keys.filter(function (k) { return W.punkte[k]; });
+    var vb = zoom === "europa" ? W.europa : [0, 0, W.w, W.h];
+    var max = Math.max.apply(null, onMap.map(function (k) { return by[k]; }).concat([1]));
+    var rmax = vb[2] * (zoom === "europa" ? 0.055 : 0.03), fs = vb[2] * (zoom === "europa" ? 0.013 : 0.011);
+    var svg = $("karte");
+    svg.setAttribute("viewBox", vb.join(" "));
+    svg.innerHTML = '<path class="land" d="' + W.pfad + '"></path>' + onMap.slice().reverse().map(function (k) {
+      var c = W.punkte[k], r = Math.max(vb[2] * 0.006, rmax * Math.sqrt(by[k] / max));
+      return '<g><circle class="dot" tabindex="0" data-land="' + esc(k) + '" cx="' + c[0] + '" cy="' + c[1] + '" r="' + r.toFixed(2) + '"><title>' + esc(k) + ": " + by[k] + " Angebote</title></circle>" +
+        (r > fs * 1.1 ? '<text x="' + c[0] + '" y="' + c[1] + '" font-size="' + fs.toFixed(2) + '">' + by[k] + "</text>" : "") + "</g>";
+    }).join("");
+    var mapped = onMap.reduce(function (s, k) { return s + by[k]; }, 0);
+    $("k-count").textContent = num(mapped) + " von " + num(total) + " Angeboten mit Land auf der Karte";
+    $("k-list").innerHTML = "<h2>Länder</h2>" + onMap.map(function (k) {
+      return '<button type="button" class="row" data-land="' + esc(k) + '"><span>' + esc(k) + '</span><span class="num">' + num(by[k]) + "</span></button>";
+    }).join("") + keys.filter(function (k) { return !W.punkte[k]; }).map(function (k) {
+      return '<div class="static"><span>' + esc(k) + (REGION[k] ? " (nur Region bekannt)" : "") + '</span><span class="num">' + num(by[k]) + "</span></div>";
+    }).join("") || '<div class="empty">Keine Angebote für diese Auswahl.</div>';
+  }
+  function landClick(e) { var el = e.target.closest("[data-land]"); if (el) openLand(el.getAttribute("data-land")); }
+  $("karte").addEventListener("click", landClick);
+  $("karte").addEventListener("keydown", function (e) { if (e.key === "Enter") landClick(e); });
+  $("k-list").addEventListener("click", landClick);
+  $("k-p").addEventListener("input", renderMap);
+  $("k-pass").addEventListener("input", renderMap);
+  $("k-zoom").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    zoom = b.dataset.z;
+    Array.prototype.forEach.call($("k-zoom").children, function (c) { c.setAttribute("aria-pressed", c === b ? "true" : "false"); });
+    renderMap();
+  });
+  if (D.welt) renderMap();
 
   /* Insolvenzen */
   var VW = { hoch: "s0", mittel: "s1", gering: "s2", unklar: "s2" };

@@ -412,3 +412,30 @@ def test_search_stops_when_a_page_repeats():
     f = Fake()
     items, log = Wotol(CFG.brands, max_pages=10).search(f, "x/889")
     assert len(items) == 1 and f.calls == 3 and "bekannte Angebote" in log.hinweis
+
+
+# -- Baujahr in der Zukunft, Länder, Karte -----------------------------------
+def test_future_build_year_is_flagged_not_trusted():
+    import datetime as dt
+
+    from radar import geo
+
+    nxt = dt.date.today().year + 1
+    order = _classified(titel="Stanzautomat Bruderer BSTA 60 Retrofit", kategorie="Stanzautomat",
+                        hersteller="Bruderer", modell="BSTA 60 Retrofit", baujahr=nxt,
+                        land="Oesterreich")
+    assert order.passung == profiles.PRUEFEN and "Zukunft" in order.passung_grund
+    assert order.land == "Österreich"
+    same = _classified(quelle_id="2", titel="Stanzautomat Bruderer BSTA 60", kategorie="Stanzautomat",
+                       hersteller="Bruderer", modell="BSTA 60", baujahr=dt.date.today().year)
+    assert same.passung == profiles.PASST
+    assert scoring.score(order, CFG).punkte < scoring.score(same, CFG).punkte
+    assert geo.normalize_country("1000") == "" and geo.normalize_country("—") == ""
+    w = geo.world()
+    assert "Deutschland" in w["punkte"] and w["pfad"].startswith("M") and len(w["europa"]) == 4
+
+
+def test_plasticker_rejects_implausible_year():
+    html = PLASTICKER_HTML.replace("<td>2016</td>", "<td>5034</td>")
+    (l,) = Plasticker(CFG.brands).parse(html)
+    assert l.baujahr is None

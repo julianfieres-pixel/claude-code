@@ -61,7 +61,7 @@ class Plasticker(Source):
                     kategorie=kategorie or "Spritzgiessmaschinen",
                     hersteller=hersteller,
                     modell=modell if hersteller else titel,
-                    baujahr=int(year_m.group(1)) if year_m else None,
+                    baujahr=ex.parse_year(year_m.group(1)) if year_m else None,
                     ort=ort,
                     land=(land_m.group(1) if land_m else ort.rsplit(",", 1)[-1].strip()),
                     preis=preis,
