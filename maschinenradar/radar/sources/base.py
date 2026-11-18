@@ -30,20 +30,24 @@ class Source:
         log = SourceLog(self.name, query, self.url_for(query))
         out: list[Listing] = []
         seen: set[str] = set()
+        leer = 0  # aufeinanderfolgende Seiten ohne neues Angebot
         for page in range(1, self.max_pages + 1):
             html = fetcher.get(self.url_for(query, page))
             if html is None:
                 break
-            items = self.parse(html)
-            if items and all(it.quelle_id in seen for it in items):
-                log.hinweis = f"Seite {page} wiederholt nur bekannte Angebote, abgebrochen"
-                break
+            parsed = self.parse(html)
+            items = [it for it in parsed if it.quelle_id not in seen]
             seen.update(it.quelle_id for it in items)
             log.seiten += 1
+            # Manche Portale streuen Wiederholungsseiten ein; erst nach zwei in Folge abbrechen.
+            leer = leer + 1 if parsed and not items else 0
+            if leer >= 2:
+                log.hinweis = f"ab Seite {page - 1} nur noch bekannte Angebote, abgebrochen"
+                break
             for it in items:
                 it.suchanfrage = query
             out.extend(items)
-            if not items or not self.has_next(html, page):
+            if not parsed or not self.has_next(html, page):
                 break
             if page == self.max_pages:
                 log.hinweis = f"nach {page} Seiten abgebrochen, weitere vorhanden"

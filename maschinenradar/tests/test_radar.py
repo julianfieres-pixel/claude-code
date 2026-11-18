@@ -411,4 +411,4 @@ def test_search_stops_when_a_page_repeats():
 
     f = Fake()
     items, log = Wotol(CFG.brands, max_pages=10).search(f, "x/889")
-    assert len(items) == 1 and f.calls == 2 and "wiederholt" in log.hinweis
+    assert len(items) == 1 and f.calls == 3 and "bekannte Angebote" in log.hinweis
