@@ -62,7 +62,7 @@ maschinen:
     begriffe: [langdrehautomat, langdreher, swiss type, swiss-type, swiss automatic, swiss lathe, swiss turn, sliding head]
     ausschluss: [stangenlader, lademagazin, bar feeder only, spannzange]
     quellen:
-      maschinensucher: [/Langdrehautomaten/ci-1135]
+      maschinensucher: [/Langdrehautomaten/ci-1135, star micronics]
       resale: [langdrehautomat, citizen-langdrehautomaten]
       surplusrecord: [swiss-type-and-lathe-cnc-automatic-screw-machines]
 
@@ -103,7 +103,8 @@ maschinen:
     begriffe: [spritzgie, spritzguss, injection mold, injection mould, allrounder, roboshot]
     ausschluss: [werkzeug, temperiergerät, trockner, granulat, förderband, ersatzteil, schnecke]
     quellen:
-      maschinensucher: [/Schliesskraft-250-999-kN/ci-1214, /Schliesskraft-1000-4999-kN/ci-1215]
+      # Kategorien zeigen höchstens 200 Angebote, deshalb zusätzlich Herstellerseiten
+      maschinensucher: [/Schliesskraft-250-999-kN/ci-1214, /Schliesskraft-1000-4999-kN/ci-1215, arburg, engel, krauss maffei, demag, battenfeld, netstal]
       resale: [spritzgiessmaschine]
       surplusrecord: [screw-type-injection-molding-machine/arburg, screw-type-injection-molding-machine/fanuc, screw-type-injection-molding-machine/engel]
 
