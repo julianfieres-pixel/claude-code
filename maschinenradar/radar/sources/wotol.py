@@ -5,6 +5,7 @@ Die Listen nennen Baujahr und Region, aber keinen Preis und keinen genauen Stand
 from __future__ import annotations
 
 import re
+from urllib.parse import quote
 
 from bs4 import BeautifulSoup
 
@@ -20,12 +21,20 @@ REGION = (("EUROPE", "Europa"), ("AMERICA North", "Nordamerika"), ("AMERICA Sout
 class Wotol(Source):
     name = "wotol"
 
+    page_cap = 15  # je 100 Angebote
+
     def url_for(self, query: str, page: int = 1) -> str:
-        url = f"{BASE}/cat/{query.strip('/')}"
-        return url if page == 1 else f"{url}?page={page}"
+        """Kategoriepfad, optional mit Herstellerfilter: "<pfad>?hersteller=Star"."""
+        path, _, extra = query.partition("?")
+        url = f"{BASE}/cat/{path.strip('/')}?perPage=100"
+        for part in filter(None, extra.split("&")):
+            key, _, value = part.partition("=")
+            if key == "hersteller":
+                url += "&filter[manufacturers][]=" + quote(value)
+        return url if page == 1 else f"{url}&page={page}"
 
     def has_next(self, html: str, page: int) -> bool:
-        return f"?page={page + 1}\"" in html
+        return re.search(rf"[?&](?:amp;)?page={page + 1}(?!\d)", html) is not None
 
     def parse(self, html: str) -> list[Listing]:
         soup = BeautifulSoup(html, "lxml")

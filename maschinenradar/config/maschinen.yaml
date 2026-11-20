@@ -59,12 +59,20 @@ maschinen:
     hersteller: [Citizen, Star, Tornos, Tsugami, Traub, Hanwha, Nomura, Manurhin, Maier, Index, DMG, Gildemeister, Swistek, Nexturn, Polygim, KSI, Goodway, Ganesh, Hardinge, Miyano, Doosan]
     hersteller_pflicht: true   # Kategorie enthält auch Langbett-Drehmaschinen
     wunschmodelle: [SR-20, SR20, SB-20, SB20]   # Star SR-20 / SB-20
-    begriffe: [langdrehautomat, langdreher, swiss type, swiss-type, swiss automatic, swiss lathe, swiss turn, sliding head]
+    begriffe: [langdrehautomat, langdreher, swiss type, swiss-type, swiss automatic, swiss lathe, swiss turn, sliding head,
+               # Typreihen, weil manche Quellen nur "CNC Lathe" als Kategorie nennen
+               sb-20, sb20, sr-20, sr20, sb-16, sr-32, sr-38, sv-20, sv-32, sv-38, ecas, cincom,
+               evodeco, deco 20, deco 13, swissnano, b0205, b0325, bs20, ss20, ss26, ss32]
     ausschluss: [stangenlader, lademagazin, bar feeder only, spannzange]
     quellen:
       maschinensucher: [/Langdrehautomaten/ci-1135, star micronics]
       resale: [langdrehautomat, citizen-langdrehautomaten]
       surplusrecord: [swiss-type-and-lathe-cnc-automatic-screw-machines]
+      wotol:
+        - cnc-lathes/lathes/machine-tools/465?hersteller=Star
+        - cnc-lathes/lathes/machine-tools/465?hersteller=Citizen
+        - cnc-lathes/lathes/machine-tools/465?hersteller=Tsugami
+        - cnc-lathes/lathes/machine-tools/465?hersteller=Tornos
 
   - id: rundtaktmaschine
     name: Rundtaktmaschine
@@ -108,7 +116,12 @@ maschinen:
       resale: [spritzgiessmaschine]
       surplusrecord: [screw-type-injection-molding-machine/arburg, screw-type-injection-molding-machine/fanuc, screw-type-injection-molding-machine/engel]
       plasticker: [Spritzgiessmaschinen]
-      wotol: [injection-molding-100t-to-300t/injection-blow-molding-and-forming-machine/plastic/889]
+      # Wotol: Kategoriepfad, optional "?hersteller=<Name>" als Filter
+      wotol:
+        - injection-molding-up-to-100t/injection-blow-molding-and-forming-machine/plastic/888
+        - injection-molding-100t-to-300t/injection-blow-molding-and-forming-machine/plastic/889
+        - injection-molding-300t-and-above/injection-blow-molding-and-forming-machine/plastic/890?hersteller=Arburg
+        - injection-molding-300t-and-above/injection-blow-molding-and-forming-machine/plastic/890?hersteller=Engel
 
 # NetBid: Auktionskalender wird nach diesen Begriffen durchsucht (Titel der Auktion).
 auktionen:

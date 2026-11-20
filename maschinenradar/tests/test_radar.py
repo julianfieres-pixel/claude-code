@@ -378,6 +378,9 @@ def test_wotol_parse():
     assert (l.quelle_id, l.hersteller, l.modell) == ("2738010", "Arburg", "Allrounder 630 S 2500-800")
     assert (l.baujahr, l.kraft_kn, l.land, l.betriebsstunden) == (2015, 2500, "Europa", 25474)
     assert src.has_next(WOTOL_HTML, 1) and not src.has_next(WOTOL_HTML, 2)
+    assert src.url_for("cnc-lathes/lathes/machine-tools/465?hersteller=Star", 2) == (
+        "https://www.wotol.com/cat/cnc-lathes/lathes/machine-tools/465?perPage=100"
+        "&filter[manufacturers][]=Star&page=2")
     assert profiles.classify(l, CFG) and l.baugroesse == "630" and l.passung == profiles.PASST
 
 
