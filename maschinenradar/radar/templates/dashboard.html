@@ -77,6 +77,16 @@ h2 { font-size: 15px; font-weight: 600; }
 .cover .track i { display: block; height: 100%; }
 .cover .low i { background: var(--due); } .cover .mid i { background: var(--warn); } .cover .full i { background: var(--ok); }
 #deckung-box { margin-top: 12px; }
+.reg-row { display: grid; grid-template-columns: minmax(150px, 1.5fr) 80px 80px 90px 80px minmax(130px, 1.6fr); gap: 6px 16px; padding: 8px 16px; align-items: center; border-top: 1px solid var(--line); }
+.reg-row .r { text-align: right; }
+.reg-head { border-top: 0; }
+.reg-land { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; padding: 12px 16px 8px; border-top: 1px solid var(--line); background: var(--surface-2); }
+.reg-land:first-child { border-top: 0; }
+.mapbox .need { fill: none; stroke: var(--due); stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+.mapbox text.needt { fill: var(--due); font-weight: 600; }
+.maplegend { display: flex; flex-wrap: wrap; gap: 4px 18px; padding: 8px 6px 2px; font-size: 12px; color: var(--muted); }
+.maplegend i { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+.maplegend .a i { background: var(--accent); } .maplegend .b i { border: 2px solid var(--due); }
 
 .mapbox { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 8px; }
 .mapbox svg { display: block; width: 100%; height: auto; }
@@ -169,6 +179,9 @@ summary:hover { background: var(--surface-2); }
   .lage-head { display: none; }
   .lage-row { grid-template-columns: 1fr; }
   .mapgrid { grid-template-columns: 1fr; }
+  .reg-head { display: none; }
+  .reg-row { grid-template-columns: minmax(0, 1fr) 46px 46px 46px 46px; }
+  .reg-row .cover { grid-column: 1 / -1; }
   .deck-row { grid-template-columns: minmax(0, 1fr) 56px 56px; }
   .deck-row .cover { grid-column: 1 / -1; }
   .deck-head div:last-child { display: none; }
@@ -213,7 +226,7 @@ summary:hover { background: var(--surface-2); }
   <nav class="tabs" role="tablist" id="tabs"></nav>
 
   <section class="panel" id="v-aktionen" role="tabpanel">
-    <div class="filters"><div class="chips" id="actchips"></div><span class="count" id="actcount"></span></div>
+    <div class="filters"><select id="act-ziel" aria-label="Zielland" hidden></select><div class="chips" id="actchips"></div><span class="count" id="actcount"></span></div>
     <div id="aktionen"></div>
   </section>
 
@@ -240,15 +253,24 @@ summary:hover { background: var(--surface-2); }
     <div class="list" id="anfragen"></div>
   </section>
 
+  <section class="panel" id="v-bedarf" role="tabpanel" hidden>
+    <p class="muted" style="max-width:90ch">Benötigte Maschinen je Zielland gegen passende Angebote: im Zielland, in dessen Weltregion und weltweit. Der Balken zeigt die Deckung aus der Region. Eine Maschine von einem anderen Kontinent braucht Transport, Verzollung und meist eine Anpassung an Netzspannung und Zulassung.</p>
+    <div class="lage" style="margin-top:0">
+      <div class="reg-row reg-head label"><div>Zielland und Klasse</div><div class="r">Benötigt</div><div class="r">Im Land</div><div class="r">In der Region</div><div class="r">Weltweit</div><div>Deckung aus der Region</div></div>
+      <div id="regional"></div>
+    </div>
+    <p class="muted" style="font-size:12px;max-width:90ch">Passende Angebote: Spezifikation erfüllt, ohne Dubletten. Holmklassen außerhalb von Arburg sind aus der Schließkraft geschätzt. Wotol nennt nur die Weltregion, diese Angebote zählen deshalb zur Region, aber nie zum Land.</p>
+  </section>
+
   <section class="panel" id="v-karte" role="tabpanel" hidden>
     <div class="filters">
       <select id="k-p" aria-label="Maschinenart"></select>
       <label class="chk"><input type="checkbox" id="k-pass" checked> nur passende Angebote</label>
-      <div class="chips" id="k-zoom"><button type="button" data-z="europa" aria-pressed="true">Europa</button><button type="button" data-z="welt" aria-pressed="false">Welt</button></div>
+      <div class="chips" id="k-zoom"><button type="button" data-z="welt" aria-pressed="true">Welt</button><button type="button" data-z="europa" aria-pressed="false">Europa</button></div>
       <span class="count" id="k-count"></span>
     </div>
     <div class="mapgrid">
-      <div class="mapbox"><svg id="karte" role="img" aria-label="Standorte der Angebote je Land"></svg></div>
+      <div class="mapbox"><svg id="karte" role="img" aria-label="Standorte der Angebote und des Bedarfs je Land"></svg><div class="maplegend"><span class="a"><i></i>Angebote (Zahl im Kreis)</span><span class="b" id="k-legneed" hidden><i></i>Bedarf im Zielland (Zahl am Ring)</span></div></div>
       <div class="maplist" id="k-list"></div>
     </div>
     <p class="muted" style="font-size:12px;max-width:90ch">Ein Kreis je Land, die Fläche entspricht der Zahl der Angebote. Die Quellen nennen den Ort nur als Text, deshalb zeigt die Karte Länder und keine Städte. Ein Klick auf Kreis oder Zeile öffnet die Angebote dieses Landes.</p>
@@ -313,7 +335,23 @@ summary:hover { background: var(--surface-2); }
   }).join("");
 
   /* Bedarfsdeckung (nur wenn eine lokale Bedarfsdatei vorlag) */
-  if (D.deckung && D.deckung.length) {
+  D.regional = D.regional || [];
+  if (D.regional.length) {
+    var lands = [];
+    D.regional.forEach(function (c) { if (lands.indexOf(c.land) < 0) lands.push(c.land); });
+    $("regional").innerHTML = lands.map(function (land) {
+      var rows = D.regional.filter(function (c) { return c.land === land; });
+      var sum = rows.reduce(function (s, c) { return s + c.bedarf; }, 0);
+      return '<div class="reg-land"><h2>' + esc(land) + '</h2><span class="muted" style="font-size:13px">Region ' + esc(rows[0].region) + " · " + sum + " Maschinen benötigt</span></div>" + rows.map(function (c) {
+        var pct = c.bedarf ? Math.min(100, 100 * c.in_region / c.bedarf) : 0;
+        var cls = pct >= 100 ? "full" : pct >= 50 ? "mid" : "low";
+        var label = D.profile[c.p].name.replace(/ Holmklasse.*/, "") + (c.klasse ? " · Holmklasse " + c.klasse : "");
+        var extra = c.wunsch != null ? '<div class="muted" style="font-size:12px">davon ' + c.wunsch + " Wunschmodell in der Region</div>" : "";
+        return '<div class="reg-row"><div><b>' + esc(label) + "</b>" + extra + '</div><div class="r num">' + num(c.bedarf) + '</div><div class="r num">' + num(c.im_land) + '</div><div class="r num">' + num(c.in_region) + '</div><div class="r num">' + num(c.welt) + "</div>" +
+          '<div class="cover"><span class="track ' + cls + '"><i style="width:' + pct.toFixed(1) + '%"></i></span><span class="num">' + (pct >= 100 ? "gedeckt" : Math.round(pct) + " %") + "</span></div></div>";
+      }).join("");
+    }).join("");
+  } else if (D.deckung && D.deckung.length) {
     $("deckung-box").hidden = false;
     $("deckung").innerHTML = D.deckung.map(function (c) {
       var pct = c.bedarf ? Math.min(100, 100 * c.passt / c.bedarf) : 0;
@@ -327,7 +365,7 @@ summary:hover { background: var(--surface-2); }
 
   /* Ansichten */
   D.insolvenzen = D.insolvenzen || [];
-  var VIEWS = [["aktionen", "Aktionsliste", D.aktionen.length], ["angebote", "Angebote", total], ["karte", "Karte", null], ["insolvenzen", "Insolvenzen", D.insolvenzen.length], ["anfragen", "Anfragen", D.anfragen.length], ["auktionen", "Auktionen", D.auktionen.filter(function (a) { return a.treffer.length; }).length]];
+  var VIEWS = [["aktionen", "Aktionsliste", D.aktionen.length]].concat(D.regional.length ? [["bedarf", "Bedarf", null]] : []).concat([["angebote", "Angebote", total], ["karte", "Karte", null], ["insolvenzen", "Insolvenzen", D.insolvenzen.length], ["anfragen", "Anfragen", D.anfragen.length], ["auktionen", "Auktionen", D.auktionen.filter(function (a) { return a.treffer.length; }).length]]);
   $("tabs").innerHTML = VIEWS.map(function (v) { return '<button type="button" role="tab" id="t-' + v[0] + '" data-v="' + v[0] + '">' + v[1] + (v[2] == null ? "" : '<span class="cnt">' + num(v[2]) + "</span>") + "</button>"; }).join("");
   function show(v) {
     if (!VIEWS.some(function (x) { return x[0] === v; })) v = "aktionen";
@@ -347,7 +385,8 @@ summary:hover { background: var(--surface-2); }
   var actFilter = "";
   function actPill(a) { return a.p === -2 ? "s1" : a.p < 0 ? "due" : (a.a.indexOf("Angebot") === 0 ? "s0" : a.a.indexOf("Preis") === 0 ? "neutral" : "s1"); }
   function renderActs() {
-    var items = D.aktionen.filter(function (a) { return !actFilter || a.a === actFilter; });
+    var zf = $("act-ziel").value;
+    var items = D.aktionen.filter(function (a) { return (!actFilter || a.a === actFilter) && (!zf || a.ziel === zf); });
     $("actcount").textContent = items.length + " von " + D.aktionen.length + " Aktionen";
     var groups = [], by = {};
     items.forEach(function (a) { var k = a.p; if (!(k in by)) { by[k] = []; groups.push(k); } by[k].push(a); });
@@ -358,7 +397,8 @@ summary:hover { background: var(--surface-2); }
         var meta = a.p < 0
           ? [a.art, a.o, a.t].filter(Boolean).join(" · ")
           : [a.y ? "Bj. " + a.y : "", a.k ? num(a.k) + " kN" : "", a.bh != null ? num(a.bh) + " h" : "", a.pe ? num(a.pe) + " EUR" : "", [a.o, a.l].filter(Boolean).join(", ")].filter(Boolean).join(" · ");
-        return '<div class="act"><div class="rank num">' + a.r + '</div><div><div class="title">' + esc(name(a)) + '</div><div class="meta">' + esc(meta) + "</div></div>" +
+        var zt = a.ziel ? '<span class="tag">' + (a.bg ? "Holm " + esc(a.bg) + " " : "") + "für " + esc(a.ziel) + (a.nah === "fern" ? ", anderer Kontinent" : a.nah === "Land" ? ", im Land" : ", in der Region") + "</span>" : "";
+        return '<div class="act"><div class="rank num">' + a.r + '</div><div><div class="title">' + esc(name(a)) + zt + '</div><div class="meta">' + esc(meta) + "</div></div>" +
           '<div class="why"><span class="pill ' + actPill(a) + '">' + esc(a.a) + '</span><div class="meta">' + esc(a.g) + "</div></div>" +
           '<div class="score" title="Punkte von 100"><span class="num">' + a.pt + '</span><span class="track"><i style="width:' + a.pt + '%"></i></span></div>' +
           link(a.u, a.p === -2 ? "Meldung" : a.p < 0 ? "Auktion" : "Inserat") + "</div>";
@@ -366,6 +406,13 @@ summary:hover { background: var(--surface-2); }
     }).join("") || '<div class="list"><div class="empty">Keine Aktionen für diesen Filter.</div></div>';
   }
   $("actchips").innerHTML = '<button type="button" data-a="" aria-pressed="true">Alle</button>' + actKinds.map(function (k) { return '<button type="button" data-a="' + esc(k) + '" aria-pressed="false">' + esc(k) + "</button>"; }).join("");
+  var actZiele = [];
+  D.aktionen.forEach(function (a) { if (a.ziel && actZiele.indexOf(a.ziel) < 0) actZiele.push(a.ziel); });
+  if (actZiele.length) {
+    $("act-ziel").hidden = false;
+    $("act-ziel").innerHTML = '<option value="">Zielland: alle</option>' + actZiele.map(function (z) { return '<option value="' + esc(z) + '">' + esc(z) + "</option>"; }).join("");
+    $("act-ziel").addEventListener("input", function () { renderActs(); });
+  }
   $("actchips").addEventListener("click", function (e) {
     var b = e.target.closest("button"); if (!b) return;
     actFilter = b.dataset.a;
@@ -450,7 +497,7 @@ summary:hover { background: var(--surface-2); }
 
   /* Karte */
   var REGION = { Europa: 1, Nordamerika: 1, "Südamerika": 1, Asien: 1, Afrika: 1, Nahost: 1, Ozeanien: 1 };
-  var zoom = "europa";
+  var zoom = "welt";
   options($("k-p"), "Maschinenart: alle", D.profile.map(function (p, i) { return [i, p.name]; }));
   function openLand(land) {
     $("f-l").value = land; $("f-p").value = $("k-p").value; $("f-s").value = $("k-pass").checked ? "0" : "";
@@ -475,6 +522,14 @@ summary:hover { background: var(--surface-2); }
       var c = W.punkte[k], r = Math.max(vb[2] * 0.006, rmax * Math.sqrt(by[k] / max));
       return '<g><circle class="dot" tabindex="0" data-land="' + esc(k) + '" cx="' + c[0] + '" cy="' + c[1] + '" r="' + r.toFixed(2) + '"><title>' + esc(k) + ": " + by[k] + " Angebote</title></circle>" +
         (r > fs * 1.1 ? '<text x="' + c[0] + '" y="' + c[1] + '" font-size="' + fs.toFixed(2) + '">' + by[k] + "</text>" : "") + "</g>";
+    }).join("");
+    var needBy = {};
+    D.regional.forEach(function (c) { if (p === "" || c.p === +p) needBy[c.land] = (needBy[c.land] || 0) + c.bedarf; });
+    var needLands = Object.keys(needBy).filter(function (k) { return W.punkte[k]; });
+    $("k-legneed").hidden = !needLands.length;
+    svg.innerHTML += needLands.map(function (k) {
+      var c = W.punkte[k], r = vb[2] * (zoom === "europa" ? 0.03 : 0.017);
+      return '<g><circle class="need" cx="' + c[0] + '" cy="' + c[1] + '" r="' + r.toFixed(2) + '"><title>' + esc(k) + ": Bedarf " + needBy[k] + '</title></circle><text class="needt" x="' + c[0] + '" y="' + (c[1] - r - fs * 0.8).toFixed(2) + '" font-size="' + fs.toFixed(2) + '">' + needBy[k] + "</text></g>";
     }).join("");
     var mapped = onMap.reduce(function (s, k) { return s + by[k]; }, 0);
     $("k-count").textContent = num(mapped) + " von " + num(total) + " Angeboten mit Land auf der Karte";

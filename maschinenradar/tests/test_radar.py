@@ -11,7 +11,7 @@ from radar.sources.maschinensucher import Maschinensucher
 from radar.sources.resale import Resale
 from radar.sources.surplusrecord import SurplusRecord
 
-CFG = profiles.load(Path(__file__).resolve().parent.parent / "config" / "maschinen.yaml")
+CFG = profiles.load(Path(__file__).resolve().parent.parent / "config" / "maschinen.yaml", lokal=False)
 
 
 @pytest.mark.parametrize(
@@ -439,3 +439,37 @@ def test_plasticker_rejects_implausible_year():
     html = PLASTICKER_HTML.replace("<td>2016</td>", "<td>5034</td>")
     (l,) = Plasticker(CFG.brands).parse(html)
     assert l.baujahr is None
+
+
+# -- Bedarf je Zielland -------------------------------------------------------
+def test_regional_demand_prefers_nearby_offers():
+    import copy
+
+    from radar import dashboard, geo
+
+    cfg = copy.copy(CFG)
+    cfg.bedarf_regionen = {"USA": {"spritzgiessmaschine": {630: 2}},
+                           "Rumänien": {"spritzgiessmaschine": {630: 1}}}
+    assert cfg.ziele("spritzgiessmaschine", "630") == ["USA", "Rumänien"]
+    assert cfg.ziele("spritzgiessmaschine", "370") == [] and cfg.ziele("langdrehautomat") == []
+    assert geo.region_of("USA") == "Nordamerika" and geo.region_of("Polen") == "Europa"
+    assert geo.region_of("Asien") == "Asien" and geo.region_of("") == ""
+
+    def machine(i, land):
+        return _classified(quelle_id=str(i), titel="Spritzgießmaschine Arburg Allrounder 630 S 2500-800",
+                           kategorie="Spritzgießmaschine", hersteller="Arburg",
+                           modell=f"Allrounder 630 S 2500-800 #{i}", baujahr=2018, land=land)
+
+    us, mx, de, cn = machine(1, "USA"), machine(2, "Mexiko"), machine(3, "Deutschland"), machine(4, "China")
+    s = {x.land: scoring.score(x, cfg) for x in (us, mx, de, cn)}
+    assert (s["USA"].ziel, s["USA"].naehe) == ("USA", "Land")
+    assert (s["Mexiko"].ziel, s["Mexiko"].naehe) == ("USA", "Region")
+    assert (s["Deutschland"].ziel, s["Deutschland"].naehe) == ("Rumänien", "Region")
+    assert s["China"].naehe == "fern" and "Netzspannung" in s["China"].grund
+    assert s["USA"].punkte > s["Mexiko"].punkte > s["China"].punkte
+
+    acts = scoring.rank([us, mx, de, cn], [], cfg, 6)
+    assert {(a.listing.land, a.ziel) for a in acts} >= {("USA", "USA"), ("Mexiko", "USA"), ("Deutschland", "Rumänien")}
+    data = dashboard.build(cfg, [us, mx, de, cn], [], [], {}, "r", acts, [])
+    usa = next(r for r in data["regional"] if r["land"] == "USA")
+    assert (usa["bedarf"], usa["im_land"], usa["in_region"], usa["welt"]) == (2, 1, 2, 4)

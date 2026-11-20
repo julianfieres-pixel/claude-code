@@ -36,10 +36,32 @@ KARTE = {
     "Bosnien und Herzegowina": "Bosnia and Herz.", "USA": "United States of America",
     "Kanada": "Canada", "Mexiko": "Mexico", "Brasilien": "Brazil", "China": "China",
     "Japan": "Japan", "Südkorea": "South Korea", "Taiwan": "Taiwan", "Indien": "India",
-    "Vietnam": "Vietnam", "Thailand": "Thailand", "Malaysia": "Malaysia", "Israel": "Israel",
+    "Vietnam": "Vietnam", "Singapur": "Singapore", "Indonesien": "Indonesia", "Thailand": "Thailand", "Malaysia": "Malaysia", "Israel": "Israel",
     "Vereinigte Arabische Emirate": "United Arab Emirates", "Südafrika": "South Africa",
     "Australien": "Australia", "Ägypten": "Egypt", "Marokko": "Morocco", "Tunesien": "Tunisia",
 }
+
+
+# Weltregion je Land (Namen wie bei Wotol), für den Abgleich von Angebot und Bedarf
+_REGION_LAENDER = {
+    "Nordamerika": ["USA", "Kanada", "Mexiko"],
+    "Südamerika": ["Brasilien", "Argentinien", "Chile", "Kolumbien"],
+    "Asien": ["China", "Japan", "Südkorea", "Taiwan", "Indien", "Vietnam", "Thailand", "Malaysia",
+              "Singapur", "Indonesien", "Philippinen"],
+    "Nahost": ["Israel", "Vereinigte Arabische Emirate", "Saudi-Arabien"],
+    "Afrika": ["Südafrika", "Ägypten", "Marokko", "Tunesien"],
+    "Ozeanien": ["Australien", "Neuseeland"],
+}
+WELTREGION = {land: region for region, laender in _REGION_LAENDER.items() for land in laender}
+
+
+def region_of(land: str) -> str:
+    """Weltregion eines Landes; unbekannte Länder mit Kartenposition zählen zu Europa."""
+    if not land:
+        return ""
+    if land in REGIONEN:
+        return land
+    return WELTREGION.get(land, "Europa")
 
 
 def normalize_country(name: str) -> str:

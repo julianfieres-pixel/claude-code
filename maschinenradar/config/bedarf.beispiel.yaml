@@ -1,11 +1,10 @@
-# Vorlage für config/bedarf.local.yaml (wird nicht versioniert).
-# Stückzahlen je Maschinenart; bei Spritzgießmaschinen je Holmklasse.
-# Die Zahlen hier sind erfunden.
-bedarf:
-  stanzautomat: 1
-  langdrehautomat: 5
-  rundtaktmaschine: 1
-  spritzgiessmaschine:
-    370: 3
-    470: 4
-    570: 2
+# Vorlage für config/bedarf.local.yaml (wird nicht versioniert). Die Zahlen hier sind erfunden.
+# Stückzahlen je Zielland und Maschinenart; bei Spritzgießmaschinen je Holmklasse.
+# Der Radar bevorzugt Angebote, die im Zielland oder in dessen Weltregion stehen.
+bedarf_regionen:
+  Deutschland:
+    stanzautomat: 1
+    spritzgiessmaschine: {370: 3, 470: 2}
+  USA:
+    langdrehautomat: 5
+    spritzgiessmaschine: {470: 2, 570: 2}

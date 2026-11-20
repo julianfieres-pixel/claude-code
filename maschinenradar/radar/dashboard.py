@@ -82,7 +82,8 @@ def build(cfg: Config, listings: list[Listing], auctions: list[Auction], logs: l
             acts.append({"r": i, "a": a.aktion, "pt": a.punkte, "p": index[x.profil_id],
                          "h": x.hersteller, "m": x.modell or x.titel, "y": x.baujahr,
                          "k": x.kraft_kn, "bh": x.betriebsstunden, "pe": eur(x, cfg), "l": x.land,
-                         "o": x.ort, "g": a.grund, "q": x.quelle, "u": x.url})
+                         "o": x.ort, "g": a.grund, "q": x.quelle, "u": x.url, "ziel": a.ziel,
+                         "nah": a.naehe, "bg": x.baugroesse})
 
     deckung = []
     for p in cfg.profiles:
@@ -98,7 +99,26 @@ def build(cfg: Config, listings: list[Listing], auctions: list[Auction], logs: l
             wm = sum(x.wunschmodell for x in ls)
             deckung.append({"p": index[p.id], "klasse": "", "bedarf": need, "passt": len(ls),
                             "wunsch": wm if p.wunschmodelle else None})
+    regional = []
+    for land, need in cfg.bedarf_regionen.items():
+        region = geo.region_of(land)
+        for p in cfg.profiles:
+            n = need.get(p.id)
+            if not n:
+                continue
+            ls = [x for x in listings if x.profil_id == p.id and x.passung == PASST and not x.moegliche_dublette]
+            for klasse, k in (n.items() if isinstance(n, dict) else [("", n)]):
+                sel = [x for x in ls if not klasse or x.baugroesse == str(klasse)]
+                regional.append({
+                    "land": land, "region": region, "p": index[p.id], "klasse": str(klasse), "bedarf": k,
+                    "im_land": sum(x.land == land for x in sel),
+                    "in_region": sum(geo.region_of(x.land) == region for x in sel),
+                    "welt": len(sel),
+                    "wunsch": sum(x.wunschmodell and geo.region_of(x.land) == region for x in sel)
+                    if p.wunschmodelle and not p.holmklassen else None,
+                })
     return {
+        "regional": regional,
         "deckung": deckung,
         "welt": geo.world(),
         "jahr": dt.date.today().year,

@@ -82,6 +82,18 @@ class Config:
     aktionen_je_maschinenart: int = 15
     insolvenzen: dict = field(default_factory=dict)
     bedarf: dict = field(default_factory=dict)  # Stückzahlen aus der lokalen Datei, nicht im Repository
+    bedarf_regionen: dict = field(default_factory=dict)  # Zielland -> Maschinenart -> Stückzahl
+
+    def ziele(self, profil_id: str, klasse: str = "") -> list[str]:
+        """Zielländer, die diese Maschinenart (und ggf. Holmklasse) brauchen."""
+        out = []
+        for land, need in self.bedarf_regionen.items():
+            n = need.get(profil_id)
+            if isinstance(n, dict):
+                n = n.get(klasse) or n.get(int(klasse)) if klasse.isdigit() else None
+            if n:
+                out.append(land)
+        return out
 
     @property
     def brands(self) -> list[str]:
@@ -91,11 +103,22 @@ class Config:
         return next((p for p in self.profiles if p.id == pid), None)
 
 
-def load(path: Path) -> Config:
+def load(path: Path, lokal: bool = True) -> Config:
     raw = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
     profiles = [p for p in (Profile(**m) for m in raw["maschinen"]) if p.aktiv]
     local = Path(path).with_name("bedarf.local.yaml")  # vertrauliche Stückzahlen, per .gitignore ausgeschlossen
-    bedarf = (yaml.safe_load(local.read_text(encoding="utf-8")) or {}).get("bedarf", {}) if local.exists() else {}
+    daten = (yaml.safe_load(local.read_text(encoding="utf-8")) or {}) if lokal and local.exists() else {}
+    regionen = daten.get("bedarf_regionen") or {}
+    bedarf = dict(daten.get("bedarf") or {})
+    if regionen and not bedarf:  # Gesamtbedarf aus den Zielländern summieren
+        for need in regionen.values():
+            for pid, n in need.items():
+                if isinstance(n, dict):
+                    tgt = bedarf.setdefault(pid, {})
+                    for klasse, k in n.items():
+                        tgt[klasse] = tgt.get(klasse, 0) + k
+                else:
+                    bedarf[pid] = bedarf.get(pid, 0) + n
     return Config(
         profiles=profiles,
         wechselkurse=raw.get("wechselkurse", {"EUR": 1.0}),
@@ -105,6 +128,7 @@ def load(path: Path) -> Config:
         aktionen_je_maschinenart=(raw.get("aktionsliste") or {}).get("je_maschinenart", 15),
         insolvenzen=raw.get("insolvenzen") or {},
         bedarf=bedarf,
+        bedarf_regionen=regionen,
     )
 
 

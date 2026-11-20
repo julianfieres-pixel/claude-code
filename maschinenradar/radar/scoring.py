@@ -4,6 +4,7 @@ from __future__ import annotations
 import datetime as dt
 from dataclasses import dataclass
 
+from . import geo
 from .models import Auction, Listing
 from .profiles import AUSSERHALB, PASST, Config
 
@@ -27,6 +28,8 @@ class Action:
     grund: str
     listing: Listing | None = None
     auction: Auction | None = None
+    ziel: str = ""  # Zielland, dessen Bedarf das Angebot am nächsten liegt
+    naehe: str = ""  # "Land", "Region" oder "fern"
     insolvenz: object | None = None
 
 
@@ -54,7 +57,26 @@ def score(lst: Listing, cfg: Config) -> Action | None:
     if lst.preis:
         punkte += 10
         teile.append("Preis bekannt")
-    if lst.land in EU:
+    ziele = cfg.ziele(lst.profil_id, lst.baugroesse)
+    ziel = naehe = ""
+    if ziele and lst.land:
+        region = geo.region_of(lst.land)
+        if lst.land in ziele:
+            ziel, naehe = lst.land, "Land"
+            punkte += 15
+            teile.append(f"steht im Bedarfsland {ziel}")
+        else:
+            nah = [z for z in ziele if geo.region_of(z) == region]
+            if nah:
+                ziel, naehe = nah[0], "Region"
+                punkte += 10
+                teile.append(f"Standort {lst.land}, gleiche Region wie der Bedarf in {', '.join(nah)}")
+            else:
+                ziel, naehe = ziele[0], "fern"
+                punkte += 3
+                teile.append(f"Standort {lst.land}, Bedarf in {', '.join(ziele)} "
+                             "(Transport, Zoll, Netzspannung und Zulassung prüfen)")
+    elif lst.land in EU:
         punkte += 15
         teile.append("Standort Europa")
     elif lst.land:
@@ -68,7 +90,7 @@ def score(lst: Listing, cfg: Config) -> Action | None:
         aktion = A_VERHANDELN if lst.preis else A_PREIS
     else:
         aktion = A_DATEN
-    return Action(min(punkte, 100), aktion, "; ".join(teile), listing=lst)
+    return Action(min(punkte, 100), aktion, "; ".join(teile), listing=lst, ziel=ziel, naehe=naehe)
 
 
 VERWERTUNG_PUNKTE = {"hoch": 30, "mittel": 15, "gering": 0, "unklar": 5}
@@ -98,5 +120,28 @@ def rank(listings: list[Listing], auctions: list[Auction], cfg: Config, per_prof
     for prof in cfg.profiles:
         acts = [a for a in (score(l, cfg) for l in listings if l.profil_id == prof.id) if a]
         acts.sort(key=lambda a: (-a.punkte, -(a.listing.baujahr or 0)))
-        out.extend(acts[:per_profile])
+        laender = [z for z in cfg.bedarf_regionen if cfg.bedarf_regionen[z].get(prof.id)]
+        if not laender:
+            out.extend(acts[:per_profile])
+            continue
+        # Je Zielland die besten Angebote aus dessen Nähe; zu wenige werden weltweit aufgefüllt
+        used: set[tuple[str, str]] = set()
+        for land in laender:
+            need = cfg.bedarf_regionen[land][prof.id]
+            stueck = sum(need.values()) if isinstance(need, dict) else need
+            je_land = min(max(3, stueck), 10)  # so viele Vorschläge wie benötigt, höchstens zehn
+            near = [a for a in acts if a.ziel == land and a.naehe != "fern" and a.listing.key not in used]
+            pick = near[:je_land]
+            if len(pick) < je_land:
+                klassen = {str(k) for k in need} if isinstance(need, dict) else None
+                # nur Angebote, die keinem anderen Zielland näher liegen
+                rest = [a for a in acts if a.listing.key not in used and a not in pick
+                        and a.naehe in ("fern", "")
+                        and (klassen is None or a.listing.baugroesse in klassen)]
+                for a in rest[: je_land - len(pick)]:
+                    pick.append(Action(a.punkte, a.aktion, a.grund, listing=a.listing, ziel=land, naehe="fern"))
+            for a in pick:
+                used.add(a.listing.key)
+                a.ziel = land
+            out.extend(pick)
     return out

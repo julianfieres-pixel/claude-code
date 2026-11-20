@@ -56,9 +56,19 @@ gebrauchtmaschinen.de (per robots.txt gesperrt).
 ## Bedarf und Vertraulichkeit
 
 `config/maschinen.yaml` enthält nur generische Maschinenklassen und wird versioniert.
-Stückzahlen stehen in `config/bedarf.local.yaml`, die per `.gitignore` ausgeschlossen ist
-(Vorlage: `config/bedarf.beispiel.yaml`). Liegt die Datei vor, zeigt das Dashboard je
-Maschinenart die Bedarfsdeckung: benötigte Stückzahl gegen passende Angebote.
+Stückzahlen je Zielland stehen in `config/bedarf.local.yaml`, die per `.gitignore`
+ausgeschlossen ist (Vorlage: `config/bedarf.beispiel.yaml`). Liegt die Datei vor, dann
+
+- zeigt die Ansicht „Bedarf" je Zielland und Klasse die benötigte Stückzahl gegen passende
+  Angebote im Land, in dessen Weltregion und weltweit,
+- bevorzugt die Priorisierung Angebote nahe am Bedarf (im Zielland 15 Punkte, in derselben
+  Weltregion 10, anderer Kontinent 3),
+- schlägt die Aktionsliste je Zielland so viele Angebote vor, wie dort benötigt werden
+  (höchstens zehn je Maschinenart), zuerst aus der Region,
+- markiert die Karte die Zielländer mit ihrem Bedarf.
+
+Dasselbe Angebot kann für mehrere Zielländer einer Region zählen; die Spalte „In der Region"
+ist deshalb je Land zu lesen und nicht über Länder zu addieren.
 
 Spritzgießmaschinen werden nach Holmklasse eingeordnet (lichte Holmweite 370 bis 720 mm).
 Bei Arburg steht die Klasse in der Typbezeichnung (Allrounder 470 A), bei anderen Herstellern
