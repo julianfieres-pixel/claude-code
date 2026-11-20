@@ -256,10 +256,10 @@ summary:hover { background: var(--surface-2); }
   <section class="panel" id="v-bedarf" role="tabpanel" hidden>
     <p class="muted" style="max-width:90ch">Benötigte Maschinen je Zielland gegen passende Angebote: im Zielland, in dessen Weltregion und weltweit. Der Balken zeigt die Deckung aus der Region. Eine Maschine von einem anderen Kontinent braucht Transport, Verzollung und meist eine Anpassung an Netzspannung und Zulassung.</p>
     <div class="lage" style="margin-top:0">
-      <div class="reg-row reg-head label"><div>Zielland und Klasse</div><div class="r">Benötigt</div><div class="r">Im Land</div><div class="r">In der Region</div><div class="r">Weltweit</div><div>Deckung aus der Region</div></div>
+      <div class="reg-row reg-head label"><div>Zielland und Klasse</div><div class="r">Benötigt</div><div class="r">Im Land / Teilregion</div><div class="r">In der Region</div><div class="r">Weltweit</div><div>Deckung aus der Region</div></div>
       <div id="regional"></div>
     </div>
-    <p class="muted" style="font-size:12px;max-width:90ch">Passende Angebote: Spezifikation erfüllt, ohne Dubletten. Holmklassen außerhalb von Arburg sind aus der Schließkraft geschätzt. Wotol nennt nur die Weltregion, diese Angebote zählen deshalb zur Region, aber nie zum Land.</p>
+    <p class="muted" style="font-size:12px;max-width:90ch">Passende Angebote: Spezifikation erfüllt, ohne Dubletten. Holmklassen außerhalb von Arburg sind aus der Schließkraft geschätzt. Wotol nennt statt des Landes eine Teilregion (z. B. „China, Taiwan, Hongkong" oder „Südasien"); solche Angebote zählen in der Spalte „Im Land / Teilregion" mit.</p>
   </section>
 
   <section class="panel" id="v-karte" role="tabpanel" hidden>
@@ -397,7 +397,7 @@ summary:hover { background: var(--surface-2); }
         var meta = a.p < 0
           ? [a.art, a.o, a.t].filter(Boolean).join(" · ")
           : [a.y ? "Bj. " + a.y : "", a.k ? num(a.k) + " kN" : "", a.bh != null ? num(a.bh) + " h" : "", a.pe ? num(a.pe) + " EUR" : "", [a.o, a.l].filter(Boolean).join(", ")].filter(Boolean).join(" · ");
-        var zt = a.ziel ? '<span class="tag">' + (a.bg ? "Holm " + esc(a.bg) + " " : "") + "für " + esc(a.ziel) + (a.nah === "fern" ? ", anderer Kontinent" : a.nah === "Land" ? ", im Land" : ", in der Region") + "</span>" : "";
+        var zt = a.ziel ? '<span class="tag">' + (a.bg ? "Holm " + esc(a.bg) + " " : "") + "für " + esc(a.ziel) + (a.nah === "fern" ? ", anderer Kontinent" : a.nah === "Land" ? ", im Land" : a.nah === "Teilregion" ? ", in der Teilregion" : ", in der Region") + "</span>" : "";
         return '<div class="act"><div class="rank num">' + a.r + '</div><div><div class="title">' + esc(name(a)) + zt + '</div><div class="meta">' + esc(meta) + "</div></div>" +
           '<div class="why"><span class="pill ' + actPill(a) + '">' + esc(a.a) + '</span><div class="meta">' + esc(a.g) + "</div></div>" +
           '<div class="score" title="Punkte von 100"><span class="num">' + a.pt + '</span><span class="track"><i style="width:' + a.pt + '%"></i></span></div>' +

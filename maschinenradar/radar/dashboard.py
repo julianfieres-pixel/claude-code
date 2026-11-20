@@ -111,7 +111,7 @@ def build(cfg: Config, listings: list[Listing], auctions: list[Auction], logs: l
                 sel = [x for x in ls if not klasse or x.baugroesse == str(klasse)]
                 regional.append({
                     "land": land, "region": region, "p": index[p.id], "klasse": str(klasse), "bedarf": k,
-                    "im_land": sum(x.land == land for x in sel),
+                    "im_land": sum(x.land == land or land in geo.teilregion_laender(x.ort) for x in sel),
                     "in_region": sum(geo.region_of(x.land) == region for x in sel),
                     "welt": len(sel),
                     "wunsch": sum(x.wunschmodell and geo.region_of(x.land) == region for x in sel)

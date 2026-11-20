@@ -471,6 +471,12 @@ def test_regional_demand_prefers_nearby_offers():
     assert s["China"].naehe == "fern" and "Netzspannung" in s["China"].grund
     assert s["USA"].punkte > s["Mexiko"].punkte > s["China"].punkte
 
+    wotol_us = machine(5, "Nordamerika")
+    wotol_us.ort = "AMERICA North (USA-Canada-Mexico)"
+    near = scoring.score(wotol_us, cfg)
+    assert (near.ziel, near.naehe) == ("USA", "Teilregion")
+    assert geo.teilregion_laender("ASIA (South)") == {"Indien"} and geo.teilregion_laender("Berlin") == set()
+
     acts = scoring.rank([us, mx, de, cn], [], cfg, 6)
     assert {(a.listing.land, a.ziel) for a in acts} >= {("USA", "USA"), ("Mexiko", "USA"), ("Deutschland", "Rumänien")}
     data = dashboard.build(cfg, [us, mx, de, cn], [], [], {}, "r", acts, [])

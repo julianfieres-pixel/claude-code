@@ -55,6 +55,22 @@ _REGION_LAENDER = {
 WELTREGION = {land: region for region, laender in _REGION_LAENDER.items() for land in laender}
 
 
+# Wotol nennt statt des Landes eine Teilregion; diese Länder liegen darin
+TEILREGION = {
+    "china - taiwan - hkg": {"China", "Taiwan"},
+    "asia (south)": {"Indien"},
+    "asia (south east)": {"Vietnam", "Thailand", "Malaysia", "Indonesien", "Singapur", "Philippinen"},
+    "asia (north east)": {"Japan", "Südkorea"},
+    "usa-canada-mexico": {"USA", "Kanada", "Mexiko"},
+}
+
+
+def teilregion_laender(ort: str) -> set[str]:
+    """Länder der Teilregion, die im Ortstext eines Angebots steht (sonst leer)."""
+    low = (ort or "").lower()
+    return next((laender for key, laender in TEILREGION.items() if key in low), set())
+
+
 def region_of(land: str) -> str:
     """Weltregion eines Landes; unbekannte Länder mit Kartenposition zählen zu Europa."""
     if not land:

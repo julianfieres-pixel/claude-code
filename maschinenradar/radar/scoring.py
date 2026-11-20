@@ -61,10 +61,15 @@ def score(lst: Listing, cfg: Config) -> Action | None:
     ziel = naehe = ""
     if ziele and lst.land:
         region = geo.region_of(lst.land)
+        teil = [z for z in ziele if z in geo.teilregion_laender(lst.ort)]
         if lst.land in ziele:
             ziel, naehe = lst.land, "Land"
             punkte += 15
             teile.append(f"steht im Bedarfsland {ziel}")
+        elif teil:
+            ziel, naehe = teil[0], "Teilregion"
+            punkte += 13
+            teile.append(f"steht in der Teilregion des Bedarfs in {', '.join(teil)}")
         else:
             nah = [z for z in ziele if geo.region_of(z) == region]
             if nah:
