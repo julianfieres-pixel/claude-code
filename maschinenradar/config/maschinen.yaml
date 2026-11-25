@@ -39,7 +39,7 @@ maschinen:
 
   - id: stanzbiegeautomat
     name: Stanzbiegeautomat
-    aktiv: false   # nicht Teil der aktuellen Bedarfsliste
+    wunschmodelle: [GRM, RM-S, RM 40, RM 35]   # Bihler GRM und RM
     gruppe: Stanzen
     spez:
       baujahr_min: 1995
@@ -50,6 +50,7 @@ maschinen:
     quellen:
       maschinensucher: [/Stanz-Biegeautomaten/ci-1053, bihler]
       resale: [bihler-stanzautomaten]
+      wotol: ["suche:bihler"]
 
   - id: langdrehautomat
     name: CNC-Langdrehautomat
@@ -80,11 +81,39 @@ maschinen:
     spez:
       baujahr_min: 2005
     hersteller: [Winema, Pfiffner, Hydromat, Mikron, Kneissler, Witzig & Frank, Wolf, Icon, Gnutti, Buffoli, Riello]
-    begriffe: [rundtakt, transfermaschine, rotary transfer]
+    begriffe: [rundtakt, transfermaschine, rotary transfer, multistar, flexmaster, kompactmaster]
     ausschluss: [spannzange, ersatzteil]
-    wunschmodelle: [Flexmaster, Flex-Master, RV 20, RV20]   # Winema Flex-Master
+    wunschmodelle: [Flexmaster, Flex-Master, Kompactmaster, RV 10, RV10, Multistar]   # Winema RV10, Mikron Multistar
     quellen:
       maschinensucher: [rundtaktmaschine]
+      wotol: ["suche:rotary transfer machine", "suche:multistar"]
+
+  - id: ringdrehautomat
+    name: Ringdrehautomat (Escomatic)
+    gruppe: Drehen
+    spez:
+      baujahr_min: 1995
+    hersteller: [Escomatic, Esco, Ecomatic]
+    hersteller_pflicht: true
+    begriffe: [escomatic, ecomatic, esco d, ringdreh, wire lathe, wire machine, coil lathe]
+    ausschluss: [ersatzteil, spare part, werkbank, airstream, stanze]
+    wunschmodelle: [D2, D5, D6]
+    quellen:
+      maschinensucher: [esco]
+      wotol: ["suche:escomatic"]
+
+  - id: index_drehautomat
+    name: Index-Drehautomat (Typ offen)
+    gruppe: Drehen
+    spez:
+      baujahr_min: 2005
+    hersteller: [Index, INDEX Werke]
+    hersteller_pflicht: true
+    begriffe: [drehautomat, drehmaschine, mehrspindel, dreh- und fräs, drehzentrum, cnc lathe, turning]
+    ausschluss: [stangenlader, lademagazin, spannzange, abfüll, ersatzteil, steuerung]
+    quellen:
+      maschinensucher: [index, /Mehrspindler/ci-1137]
+      wotol: ["cnc-lathes/lathes/machine-tools/465?hersteller=Index"]
 
   - id: mehrspindler
     name: CNC-Mehrspindeldrehautomat

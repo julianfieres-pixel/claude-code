@@ -25,6 +25,9 @@ class Wotol(Source):
 
     def url_for(self, query: str, page: int = 1) -> str:
         """Kategoriepfad, optional mit Herstellerfilter: "<pfad>?hersteller=Star"."""
+        if query.startswith("suche:"):  # Stichwortsuche statt Kategorie
+            url = f"{BASE}/product/search?q={quote(query[6:].strip())}&perPage=100"
+            return url if page == 1 else f"{url}&page={page}"
         path, _, extra = query.partition("?")
         url = f"{BASE}/cat/{path.strip('/')}?perPage=100"
         for part in filter(None, extra.split("&")):
@@ -40,6 +43,8 @@ class Wotol(Source):
         soup = BeautifulSoup(html, "lxml")
         h1 = soup.find("h1")
         kategorie = ex.clean(h1.get_text(" ")) if h1 else ""
+        if kategorie.startswith(('"', "“")):  # Suchergebnisseite: die Überschrift ist der Suchbegriff
+            kategorie = "Suche"
         out = []
         for card in soup.select("article.rd-row-card"):
             a = card.select_one(".rd-row-card__title a[href]")

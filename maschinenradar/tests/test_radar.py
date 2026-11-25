@@ -281,8 +281,20 @@ def test_tiebar_class(brand, model, kn, expected):
 
 
 def test_real_demand_classes():
-    assert [p.id for p in CFG.profiles] == ["stanzautomat", "langdrehautomat", "rundtaktmaschine",
-                                            "spritzgiessmaschine"]
+    assert [p.id for p in CFG.profiles] == [
+        "stanzautomat", "stanzbiegeautomat", "langdrehautomat", "rundtaktmaschine",
+        "ringdrehautomat", "index_drehautomat", "spritzgiessmaschine"]
+    esco = _listing(titel="Escomatic D5 Wire machine", kategorie="Suche", hersteller="Escomatic",
+                    modell="D5 Wire machine", baujahr=2001)
+    assert profiles.classify(esco, CFG) and esco.profil_id == "ringdrehautomat" and esco.wunschmodell
+    idx = _listing(titel="CNC-Drehmaschine INDEX Werke G200C", kategorie="CNC-Drehmaschine",
+                   hersteller="INDEX Werke", modell="G200C", baujahr=2012)
+    assert profiles.classify(idx, CFG) and idx.profil_id == "index_drehautomat"
+    bihler = _listing(titel="Stanz- Biegeautomat BIHLER GRM 80", kategorie="Stanz- Biegeautomat",
+                      hersteller="BIHLER", modell="GRM 80", baujahr=1999)
+    assert profiles.classify(bihler, CFG) and bihler.profil_id == "stanzbiegeautomat" and bihler.wunschmodell
+    assert Wotol(CFG.brands).url_for("suche:escomatic") == (
+        "https://www.wotol.com/product/search?q=escomatic&perPage=100")
     arburg = _listing(titel="Spritzgießmaschine Arburg Allrounder 630 S 2500-1300",
                       kategorie="Spritzgießmaschine", hersteller="Arburg",
                       modell="Allrounder 630 S 2500-1300", baujahr=2018)
