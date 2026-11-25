@@ -86,7 +86,7 @@ maschinen:
     wunschmodelle: [Flexmaster, Flex-Master, Kompactmaster, RV 10, RV10, Multistar]   # Winema RV10, Mikron Multistar
     quellen:
       maschinensucher: [rundtaktmaschine]
-      wotol: ["suche:rotary transfer machine", "suche:multistar"]
+      wotol: ["suche:multistar"]
 
   - id: ringdrehautomat
     name: Ringdrehautomat (Escomatic)
